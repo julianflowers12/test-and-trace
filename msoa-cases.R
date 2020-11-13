@@ -22,16 +22,20 @@ daily_ltla <- msoa %>%
 
 daily_ltla_sheet <-  la  %>% 
     janitor::clean_names() %>% 
-    mutate(date = lubridate::epiweek(specimen_date))  %>% 
-    group_by(area_code, area_name, date)  %>% 
-    mutate(date, case_sum_1 = sum(daily_lab_confirmed_cases, na.rm = TRUE))  %>% 
-    select(area_name, area_name, specimen_date, date, case_sum_1)  %>% 
-    left_join(daily_ltla, by = c("area_code" = "UTLA", "specimen_date" = "date"))  %>% 
-    select(area_name, area_code, specimen_date, date, case_sum_1, case_sum)      
+    mutate(date = lubridate::epiweek(specimen_date))  %>%
+    group_by(area_code, area_name, date)  %>%
+    mutate(date, case_sum_1 = sum(daily_lab_confirmed_cases, na.rm = TRUE))  %>%
+    select(area_name, area_name, specimen_date, date, case_sum_1)  %>%
+    left_join(daily_ltla, by = c("area_code" = "UTLA", "specimen_date" = "date"))  %>%
+    select(area_name, area_code, specimen_date, date, case_sum_1, case_sum)
 
 daily_ltla_sheet  %>% 
      filter(!is.na(case_sum))  %>% 
      mutate(prop = case_sum/case_sum_1)  %>% 
+     filter(prop > 1)
+     select(area_code, area_name, date, prop)  %>% 
+     pivot_wider(names_from  = "date", values_from = "prop")  %>%
+     head()
      ggplot(aes(date, fct_rev(area_name), fill = prop)) +
      geom_tile() +
      viridis::scale_fill_viridis() +
