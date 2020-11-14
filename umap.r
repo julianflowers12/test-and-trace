@@ -1,4 +1,4 @@
-install.packages("umap")
+#install.packages("umap")
 library(umap)
 library(tidyverse)
 library(fingertipsR)

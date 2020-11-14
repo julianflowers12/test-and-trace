@@ -35,7 +35,7 @@ daily_ltla_sheet  %>%
      filter(prop > 1)
      select(area_code, area_name, date, prop)  %>% 
      pivot_wider(names_from  = "date", values_from = "prop")  %>%
-     head()
+     #head()
      ggplot(aes(date, fct_rev(area_name), fill = prop)) +
      geom_tile() +
      viridis::scale_fill_viridis() +
@@ -43,4 +43,4 @@ daily_ltla_sheet  %>%
 
 msoa  %>% 
     filter(str_detect(areaName, "Balsham"))  %>% 
-    formattable::formattable()
+    gt::gt()

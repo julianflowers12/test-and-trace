@@ -1,3 +1,4 @@
+## calculate dsrs for case rates
 
 library(tidyverse)
 library(data.table)
@@ -26,7 +27,7 @@ la_cases <- la_cases %>%
          ))
 
 la_cases %>%
-  count(ageband)
+  count(areaType)
 
 ## download 2019 LA populations from ONS
 
@@ -65,6 +66,11 @@ la_pops_p <- la_pops_p  %>%
   group_by(Code, Name, gender, ageband,  Geography1) %>%
   summarise(pop_est = sum(pop))
 
+la_pops_p  %>% 
+    ungroup()  %>% 
+    count(Geography1)
+
+
 ## unstack by gender and calculate populations for all persons
 
 la_pops_p_w <- la_pops_p %>%
@@ -92,6 +98,8 @@ la_dsr_utla <- la_final %>%
   #filter(areaName == "Barking and Dagenham", date == "2020-03-01") %>% 
   phe_dsr(newCasesBySpecimenDateRollingSum, pop_p)
 
+ la_dsr_utla 
+
 
 ## plot
 
@@ -104,8 +112,10 @@ plot <- la_dsr_utla %>%
        title = "Age-adjusted rates", 
        subtitle = "NW LAs and University cities are mostly beyond the peak; Yorkshire LAs are still on the rise",
        caption = "Directly standardised to the 2003 ESR") +
-  geom_hline(yintercept = 400, colour = "red") +
-  geom_vline(xintercept = as.Date("2020-11-06")) +
+  geom_hline(yintercept = 100, colour = "red") +
+  geom_vline(xintercept = as.Date("2020-11-06"), lty = "dotted") + 
+  #annotate("text", label = "National\nlockdown", x = as.Date("2020-09-15"), y = 300) + 
+  ylim(c(0, 400)) +
   facet_wrap(~areaName) 
 
 plot  
