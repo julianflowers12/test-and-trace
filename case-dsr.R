@@ -10,7 +10,7 @@ library(phutils)
 ## import age-specific case data
 la_cases <- fread("https://coronavirus.data.gov.uk/downloads/demographic/cases/specimenDate_ageDemographic-stacked.csv")
 
-glimpse(la_cases)
+tail(la_cases)
 
 
 la_cases  %>% 
@@ -107,7 +107,7 @@ plot <- la_dsr_utla %>%
   #filter(areaName == "Nottingham") %>% 
   ggplot(aes(date, value)) +
   geom_line(lwd = 0.1) +
-  geom_ribbon(aes(ymin = lowercl, ymax = uppercl), fill = "grey60") +
+  geom_ribbon(aes(ymin = lowercl, ymax = uppercl), fill = "grey10") +
   labs(y = "Age-adjusted rate per 100,000", 
        title = "Age-adjusted rates", 
        subtitle = "NW LAs and University cities are mostly beyond the peak; Yorkshire LAs are still on the rise",
@@ -116,16 +116,66 @@ plot <- la_dsr_utla %>%
   geom_vline(xintercept = as.Date("2020-11-06"), lty = "dotted") + 
   #annotate("text", label = "National\nlockdown", x = as.Date("2020-09-15"), y = 300) + 
   ylim(c(0, 400)) +
-  facet_wrap(~areaName) 
+  facet_wrap(~areaName) +
+  theme_light()
 
 plot  
 
 
+#######
+
+modelled_peak <- function(df, area){
+  
+  require(mgcv)
+  require(dplyr)
+  require(ggplot2)
+  require(lubridate)
+  require(broom)
+  
+  df <- df
+  area <- area
+  
+  df <- df %>%
+    filter(date >= "2020-03-01") %>%
+    mutate(date = lubridate::ymd(date), date1 = as.numeric(date)) %>%
+    filter(areaName == area) 
+  
+  obs_max <- df %>%
+    filter(value == max(value, na.rm = TRUE))
+  
+  ## estimating peak
+  
+  mod <- gam(data = df, value ~ s(date1))
+  
+  tidy <- summary(mod)
+  
+  data <- data.frame(obs_max, .fitted = mod$fitted.values)
+  
+  est_max <- data %>%
+    filter(value == max(value))
+  
+  ## plot
+  plot_fitted <- data %>%
+    ggplot(aes(date, .fitted)) +
+    geom_line() +
+    geom_point(aes(date, value)) +
+    geom_vline(xintercept = as.Date(est_max$date), colour = "red") +
+    geom_vline(xintercept = as.Date("2020-11-06", lty = "dotted")) +
+  ggtitle(paste("Estimated cases for", area))
+  
+  ## return
+  out <- list(area = area, obs_max = obs_max, est_max = est_max, model = tidy, data = data, plot = plot_fitted)
+  
+}
 
 
+area_list <- pull(la_dsr_utla, "areaName") %>%
+  unique()
+
+area_list
 
 
-
-
-
+peaks <- map(area_list[61], function(x) modelled_peak(df = la_dsr_utla, x))
+peaks[[1]]$plot +
+  scale_x_date(breaks = "month")
 
