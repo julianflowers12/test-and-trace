@@ -175,7 +175,7 @@ area_list <- pull(la_dsr_utla, "areaName") %>%
 area_list
 
 
-peaks <- map(area_list[61], function(x) modelled_peak(df = la_dsr_utla, x))
+peaks <- map(area_list[73], function(x) modelled_peak(df = la_dsr_utla, x))
 peaks[[1]]$plot +
   scale_x_date(breaks = "month")
 
