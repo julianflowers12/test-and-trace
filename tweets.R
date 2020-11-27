@@ -26,7 +26,9 @@ cov_text <- cov_tweets1 %>%
 
  dim(sent)
 
-cov_text1 <- cov_text %>% cbind(sent)
+cov_text1 <- cov_text %>% cbind(sent) %>% data.frame()
+
+class(tokens)
 
 cov_text1 %>% filter(sent_vader == min(sent_vader))
 glimpse(cov_text1)
@@ -43,10 +45,20 @@ glimpse(cov_text1)
 
 
 tokens <- cov_text %>% mutate(text = tolower(text),
+                              text = tm::removePunctuation(text),
                               text = tm::removeNumbers(text),
                               text = tm::removeWords(text, 
-                              c(stopwords("en"), "https", "t.co", "\\n")))
+                              c(stopwords("en"), "https?", "t.co", "\\n")))
 
+
+corp <- corpus(tokens, text_field = "text")
+dfm <- dfm(corp)
+stm <- convert(dfm, to = "stm")
+stm_topics <- stm::stm(K = 10, stm$documents, stm$vocab, data = stm$meta, init.type = "Spectral")
+
+plot(stm_topics, n = 7, text.cex = .6)
+
+#####
  str(tokens)                           
 tokens <- word_tokenizer(tokens$text)
 it <- itoken(tokens, ids = cov_text$status_id, progressbar = FALSE)
