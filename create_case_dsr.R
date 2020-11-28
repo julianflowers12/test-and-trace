@@ -73,7 +73,7 @@ la_final <- la_cases %>%
 ## calculate dsrs with CIs for UTLAs 
 
 la_dsr_la <- la_final %>%
-  filter(areaType == "utla") %>%
+  filter(areaType == area) %>%
   #filter(str_detect(areaName, "Bark"))
   #count(Geography1) %>%
   # filter(n != 19) %>%
