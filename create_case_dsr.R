@@ -20,12 +20,13 @@ la_cases <- la_cases %>%
                              TRUE ~ ageband
          ))
 
-
 ## download 2019 LA populations from ONS
+destfile <- tempfile()
+curl::curl_download("https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fpopulationandmigration%2fpopulationestimates%2fdatasets%2fpopulationestimatesforukenglandandwalesscotlandandnorthernireland%2fmid2019april2019localauthoritydistrictcodes/ukmidyearestimates20192019ladcodes.xls", destfile = destfile)
 
-curl::curl_download("https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fpopulationandmigration%2fpopulationestimates%2fdatasets%2fpopulationestimatesforukenglandandwalesscotlandandnorthernireland%2fmid2019april2019localauthoritydistrictcodes/ukmidyearestimates20192019ladcodes.xls", destfile = "lapops.xls")
-la_pops_m <- read_excel("~/New-VSCode-projects/test-and-trace/lapops.xls", sheet = 6, skip = 4)
-la_pops_f <- read_excel("~/New-VSCode-projects/test-and-trace/lapops.xls", sheet = 7, skip = 4)
+sheets <- excel_sheets(destfile)
+la_pops_m <- read_excel(destfile, sheet = 7, skip = 4)
+la_pops_f <- read_excel(destfile, sheet = 8, skip = 4)
 
 ## convert to stacked format (long)
 
@@ -33,7 +34,7 @@ la_pops_m_l <- la_pops_m  %>%
   pivot_longer(names_to = "age", values_to = "pop", 4:ncol(.))  %>% 
   mutate(gender = "m")
 
-la_pops_f_l <- la_pops_m  %>% 
+la_pops_f_l <- la_pops_f  %>% 
   pivot_longer(names_to = "age", values_to = "pop", 4:ncol(.))  %>% 
   mutate(gender = "f")   
 
@@ -41,7 +42,7 @@ la_pops_f_l <- la_pops_m  %>%
 
 la_pops_p <- bind_rows(la_pops_m_l, la_pops_f_l)
 
-# x <- 0:89
+# set agebands
 age.breaks <- seq(from = 0, to = 100, by = 5)
 # phutils::age.groups(x, age.breaks, final.open = TRUE,ordered_result = TRUE )
 
@@ -71,8 +72,8 @@ la_final <- la_cases %>%
   
 ## calculate dsrs with CIs for UTLAs 
 
-la_dsr_utla <- la_final %>%
-  filter(areaType == area) %>%
+la_dsr_la <- la_final %>%
+  filter(areaType == "utla") %>%
   #filter(str_detect(areaName, "Bark"))
   #count(Geography1) %>%
   # filter(n != 19) %>%
@@ -82,7 +83,7 @@ la_dsr_utla <- la_final %>%
   #filter(areaName == "Barking and Dagenham", date == "2020-03-01") %>% 
   phe_dsr(newCasesBySpecimenDateRollingSum, pop_p)
 
- output <- list(la_cases = la_cases, dsr = la_dsr_utla, la_pops = la_pops_p_w)
+ output <- list(data = la_final, la_cases = la_cases, dsr = la_dsr_la, la_pops = la_pops_p_w)
 
 }
 

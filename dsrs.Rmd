@@ -1,0 +1,47 @@
+---
+title: "DSRs"
+date: "`r Sys.Date()`"
+author: "Julian Flowers"
+
+---
+## Calculate dsrs for local authorities
+
+```{r, cache = TRUE}
+library(tidyverse)
+library(devtools)
+
+URL <- "https://github.com/julianflowers12/test-and-trace/blob/master/create_case_dsr.R?raw=TRUE"
+
+source_url(URL)
+
+test <- case_dsrs_las(area = "ltla")
+
+tail(test$dsr)
+
+```
+
+
+## Tier 1
+
+```{r}
+
+unique(test$dsr$areaName)
+
+t1 <- c("Cornwall and Isles of Scilly", "Isle of Wight", "Liverpool", "Swale", "Kingston upon Hull, City of", "Manchester", "South Cambridgeshire")
+
+dsr_plot <- test$dsr %>%
+  #filter(areaName %in% t1) %>%
+  ggplot(aes(date, value, colour = areaName)) +
+  geom_line(show.legend = FALSE) +
+  labs(y = "Standardised case rate", 
+       x = "Date", 
+       title = "Age standardised 7-day rolling case rates per 100,000") +
+  scale_x_date(breaks = "months") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        plot.title.position = "plot", 
+        panel.background = element_blank())
+
+library(plotly)
+ggplotly(dsr_plot)
+```
+
