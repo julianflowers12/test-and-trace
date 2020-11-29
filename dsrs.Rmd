@@ -83,6 +83,19 @@ library(plotly)
 ggplotly(dsr_1)
 ```
 
+```{r}
+
+dsr_tiers %>%
+    filter(date == max(date), !is.na(local_covid_19_tier)) %>%
+    ggplot() +
+    geom_density(aes(value, fill = local_covid_19_tier), alpha = .4)
+
+
+
+```
+
+
+
 ```{r fig.height= 14, fig.width=10}
 
 dsr_tiers %>%
