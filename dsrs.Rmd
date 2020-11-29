@@ -4,11 +4,22 @@ date: "`r Sys.Date()`"
 author: "Julian Flowers"
 
 ---
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(cache = TRUE,
+                      message = FALSE, 
+                      warning = FALSE,
+                      echo = FALSE)
+
+library(pacman)
+p_load(tidyverse, devtools, plotly, readxl)
+
+```
+
 ## Calculate dsrs for local authorities
 
-```{r, cache = TRUE}
-library(tidyverse)
-library(devtools)
+```{r}
 
 URL <- "https://github.com/julianflowers12/test-and-trace/blob/master/create_case_dsr.R?raw=TRUE"
 
@@ -20,18 +31,45 @@ tail(test$dsr)
 
 ```
 
+### Get tiers
 
-## Tier 1
+```{r tiers}
+
+## get tier information
+
+destfile <- tempfile()
+
+curl::curl_download("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/938970/2020-11-26_COVID-19_Press_Conference_Data.xlsx", destfile = destfile)
+
+sheets <- excel_sheets(destfile)
+
+tiers <- read_excel(destfile, sheet = 4, skip = 3) %>%
+  janitor::clean_names()
+
+
+tiers
+
+
+
+
+
+```
+
+## DSRs
 
 ```{r}
 
-unique(test$dsr$areaName)
+#unique(test$dsr$areaName)
 
 t1 <- c("Cornwall and Isles of Scilly", "Isle of Wight", "Liverpool", "Swale", "Kingston upon Hull, City of", "Manchester", "South Cambridgeshire")
 
-dsr_plot <- test$dsr %>%
+dsr_tiers <- test$dsr %>%
+  left_join(tiers, by = c("areaName" = "local_authority_district_april_2019_name")) 
+
+
+dsr_1 <- dsr_tiers %>%
   #filter(areaName %in% t1) %>%
-  ggplot(aes(date, value, colour = areaName)) +
+  ggplot(aes(date, value, group = areaName, colour = local_covid_19_tier)) +
   geom_line(show.legend = FALSE) +
   labs(y = "Standardised case rate", 
        x = "Date", 
@@ -42,6 +80,27 @@ dsr_plot <- test$dsr %>%
         panel.background = element_blank())
 
 library(plotly)
-ggplotly(dsr_plot)
+ggplotly(dsr_1)
 ```
 
+```{r fig.height= 10, fig.width=10}
+
+dsr_tiers %>%
+  group_by(areaName) %>%
+  filter(date == max(date)) %>%
+  ggplot(aes(reorder(areaName, -value), value)) +
+  geom_point(aes(colour = local_covid_19_tier, size = 1)) +
+  geom_linerange(aes(ymax = uppercl, ymin = lowercl, colour = local_covid_19_tier)) +
+  coord_flip() +
+  theme(axis.text.x = element_text(size = 7, angle = 90, hjust = 1), 
+        panel.background = element_blank()) +
+  labs(x = "", y = "Rate") +
+  viridis::scale_colour_viridis(discrete = TRUE, option = "D", direction = -1)
+
+
+
+
+
+```
+
+### 
