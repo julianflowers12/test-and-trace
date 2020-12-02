@@ -21,3 +21,4 @@ lfdTests  %>%
       mutate(date = lubridate::ymd(date)) %>%
       ggplot(aes(date, newLFD, fill = name)) +
       geom_col(show.legend = FALSE)
+

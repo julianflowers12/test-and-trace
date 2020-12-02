@@ -38,9 +38,10 @@ nov1 <- pre[date == "2020-11-15", ]
 nov1[nov][str_detect(areaCode, "^E"),]
 
 
+cum <- read_csv("https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation;areaName=England&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newCasesByPublishDate%22:%22newCasesByPublishDate%22,%22cumCasesByPublishDate%22:%22cumCasesByPublishDate%22%7D&format=csv")
 
-
-
+cum %>% summarise(across(where(is.numeric), sum, na.rm = TRUE))
+head(cum)
 
 
 
