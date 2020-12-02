@@ -1,5 +1,5 @@
 ## etl
-if(!require("myScraoers"))devtools::install_github("julianflowers/nyScrapers")
+if(!require("myScraoers"))devtools::install_github("julianflowers/myScrapers")
 library(myScrapers)
 library(tidyverse)
 library(downloader)
