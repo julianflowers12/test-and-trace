@@ -92,7 +92,7 @@ la_dsr_utla <- la_final %>%
   #filter(str_detect(areaName, "Bark"))
   #count(Geography1) %>%
   # filter(n != 19) %>%
-  group_by(areaName, date) %>%
+  group_by(Code, areaName, date) %>%
   #select(-Geography1) %>%
   #distinct() %>%
   #filter(areaName == "Barking and Dagenham", date == "2020-03-01") %>% 
@@ -104,17 +104,17 @@ la_dsr_utla <- la_final %>%
 ## plot
 
 plot <- la_dsr_utla %>%
-  #filter(areaName == "Nottingham") %>% 
+  filter(areaName %in% c("Isle of Wight", "Cambridgeshire", "Hartlepool", "Nottingham", "Liverpool", "Medway", "Havering", "Birmingham")) %>% 
   ggplot(aes(date, value)) +
   geom_line(lwd = 0.1) +
   geom_ribbon(aes(ymin = lowercl, ymax = uppercl), fill = "grey10") +
   labs(y = "Age-adjusted rate per 100,000", 
-       title = "Age-adjusted rates", 
-       subtitle = "NW LAs and University cities are mostly beyond the peak; Yorkshire LAs are still on the rise",
-       caption = "Directly standardised to the 2003 ESR") +
+       title = "Age-adjusted case rates per 100,000", 
+       subtitle = "NW LAs and University cities are mostly beyond the peak; Some Kent LAs are still on the rise",
+       caption = "Directly standardised to the 2003 ESP") +
   geom_hline(yintercept = 100, colour = "red") +
   geom_vline(xintercept = as.Date("2020-11-06"), lty = "dotted") + 
-  #annotate("text", label = "National\nlockdown", x = as.Date("2020-09-15"), y = 300) + 
+  annotate("text", label = "National\nlockdown", x = as.Date("2020-09-15"), y = 600) + 
   ylim(c(0, 400)) +
   facet_wrap(~areaName) +
   theme_light()
@@ -175,7 +175,8 @@ area_list <- pull(la_dsr_utla, "areaName") %>%
 area_list
 
 
-peaks <- map(area_list[73], function(x) modelled_peak(df = la_dsr_utla, x))
+peaks <- map(area_list[61], function(x) modelled_peak(df = la_dsr_utla, x))
 peaks[[1]]$plot +
   scale_x_date(breaks = "month")
+
 

@@ -14,7 +14,6 @@ latest_data <- get_page_links(url) %>%
   enframe() %>%
   mutate(latest = paste0("https://www.gov.uk", value), 
          links = map(latest, get_page_links)) %>%
-  View()
   unnest("links") %>%
   filter(str_detect(links, "ods$"))
 
@@ -64,17 +63,31 @@ la_tests_l <- la_tests %>%
   pivot_longer(names_to = "metric", values_to = "value", 7:ncol(.))
 
 pos <- data.frame(la_cases_l, tests = la_tests_l$value) %>%
-  mutate(pos = round(100 * value / tests, 2)) %>%
   separate(metric, c("start", "end"), sep = "-") %>%
   mutate(start = ifelse(str_detect(start, "2020"), start, paste0(str_trim(start), "20")), 
          end = ifelse(str_detect(end, "2020"), end, paste0(str_trim(end), "20")), 
          start = lubridate::dmy(start), 
          end = lubridate::dmy(end)) %>%
-  filter(!is.na(start))
+  filter(!is.na(start)) %>%
+  group_by(Region.Name, end) %>%
+  summarise(suma = sum(value, na.rm = TRUE), 
+            testsa = sum(tests)) %>%
+  mutate(pos = round(100 * suma / testsa, 2))
+  
+pos
 
 p <- pos %>%
-  ggplot(aes(end, pos, colour = LTLA.Name)) +
+  ggplot(aes(end, pos, colour = Region.Name)) +
   geom_line()
+
+p +
+  labs(y = "Positivity rate", 
+       title = "Weekly positivity rate by region (based on week-end dates)", 
+       caption = "Source: Weekly test and trace report") +
+  theme(plot.title.position = "plot", 
+        panel.background = element_blank()) +
+  viridis::scale_color_viridis(discrete = TRUE, option = "plasma") +
+  ggsave("pos.png")
   
 plotly::ggplotly(p)
 
@@ -83,8 +96,7 @@ plotly::ggplotly(p)
 processed <- read_ods((paste0("data/",files[8])), sheet = sheets1[3])
 processed
 
-read_ods((paste0("data/",files[4])), sheet = sheets2[8], skip = 1) 
-%>%
+read_ods((paste0("data/",files[4])), sheet = sheets2[8], skip = 1) %>%
   janitor::remove_empty("rows") %>%
   select(-contains("NA")) %>%
   .[2:10]
