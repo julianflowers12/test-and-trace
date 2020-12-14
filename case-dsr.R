@@ -121,6 +121,23 @@ plot <- la_dsr_utla %>%
 
 plot  
 
+### heatmap ordered by mean value since 1st September
+
+las_matrix <- la_dsr_utla %>%
+  select(-c(total_count, total_pop, lowercl, uppercl, confidence, statistic, method)) 
+  
+las_matrix %>%
+  group_by(areaName) %>%
+  filter(date >= "2020-09-01") %>%
+  mutate(median = mean(value, na.rm = TRUE)) %>%
+  ggplot(aes(date, fct_reorder(areaName, median), fill = value)) +
+  geom_tile() +
+  viridis::scale_fill_viridis(direction = -1, option = "viridis") +
+  theme(axis.text.y = element_text(size = 7)) +
+  scale_y_discrete(position = "right") +
+  labs(y = "") +
+  coord_equal() +
+  geom_vline(xintercept = as.Date("2020-11-06"))
 
 #######
 

@@ -29,9 +29,12 @@ download(latest_data$links[i], paste0("data/", filenames[i]))
 ## extract files
 
 files <- list.files("data", pattern = "ods")
-files
 
-ltlap2 <- read_ods(paste0("data/",files[6]), sheet = 2) %>%
+get_sheets <- map(paste0("data/",files), ~(readODS::ods_sheets(.x)))
+
+get_sheets
+
+ltlap2 <- read_ods(paste0("data/",files[3]), sheet = 2) %>%
   mutate_at(.vars = 7:ncol(.), as.numeric) %>%
   pivot_longer(names_to = "metric", values_to = "value", 7:ncol(.)-1) %>%
   mutate(date = lubridate::dmy(metric)) %>%
@@ -51,7 +54,7 @@ sheets2 <- list_ods_sheets(paste0("data/",files[4]))
 
 
 ## LA tests
-la_cases <- read_ods((paste0("data/",files[2])), sheet = sheets1[9], skip = 2)
+la_cases <- read_ods((paste0("data/",files[2])), sheet = get_sheets[9], skip = 2)
 la_tests <- read_ods((paste0("data/",files[2])), sheet = sheets1[8], skip = 2)
 
 la_cases_l <- la_cases %>%
@@ -89,12 +92,10 @@ p +
   viridis::scale_color_viridis(discrete = TRUE, option = "plasma") +
   ggsave("pos.png")
   
-plotly::ggplotly(p)
 
 ## tests processed
 
 processed <- read_ods((paste0("data/",files[8])), sheet = sheets1[3])
-processed
 
 read_ods((paste0("data/",files[4])), sheet = sheets2[8], skip = 1) %>%
   janitor::remove_empty("rows") %>%
