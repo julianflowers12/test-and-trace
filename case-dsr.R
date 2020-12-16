@@ -87,8 +87,8 @@ la_final <- la_cases %>%
   
 ## calculate dsrs with CIs for UTLAs 
 
-la_dsr_utla <- la_final %>%
-  filter(areaType == "utla") %>%
+la_dsr_ltla <- la_final %>%
+  filter(areaType == "ltla") %>%
   #filter(str_detect(areaName, "Bark"))
   #count(Geography1) %>%
   # filter(n != 19) %>%
@@ -98,32 +98,36 @@ la_dsr_utla <- la_final %>%
   #filter(areaName == "Barking and Dagenham", date == "2020-03-01") %>% 
   phe_dsr(newCasesBySpecimenDateRollingSum, pop_p)
 
- la_dsr_utla 
+ la_dsr_ltla 
 
 
 ## plot
 
-plot <- la_dsr_utla %>%
-  filter(areaName %in% c("Isle of Wight", "Cambridgeshire", "Hartlepool", "Nottingham", "Liverpool", "Medway", "Havering", "Birmingham")) %>% 
+plot <- la_dsr_ltla %>%
+  #filter(areaName %in% c("Isle of Wight", "Cambridgeshire", "Hartlepool", "Nottingham", "Liverpool", "Medway", "Havering", "Birmingham")) %>% 
   ggplot(aes(date, value)) +
-  geom_line(lwd = 0.1) +
-  geom_ribbon(aes(ymin = lowercl, ymax = uppercl), fill = "grey10") +
+  geom_col(lwd = 0.1) +
+  #geom_ribbon(aes(ymin = lowercl, ymax = uppercl), fill = "goldenrod", colour = "blue") +
   labs(y = "Age-adjusted rate per 100,000", 
        title = "Age-adjusted case rates per 100,000", 
        subtitle = "NW LAs and University cities are mostly beyond the peak; Some Kent LAs are still on the rise",
        caption = "Directly standardised to the 2003 ESP") +
-  geom_hline(yintercept = 100, colour = "red") +
+  geom_hline(yintercept = 100, colour = "red", lty = "dotted") +
   geom_vline(xintercept = as.Date("2020-11-06"), lty = "dotted") + 
   annotate("text", label = "National\nlockdown", x = as.Date("2020-09-15"), y = 600) + 
   ylim(c(0, 400)) +
   facet_wrap(~areaName) +
-  theme_light()
+  theme_minimal() +
+  theme(panel.background = element_blank(), 
+        strip.text = element_text(size = 6))
 
-plot  
+plot +
+  ggsave("dsr.png")
+  
 
 ### heatmap ordered by mean value since 1st September
 
-las_matrix <- la_dsr_utla %>%
+las_matrix <- la_dsr_ltla %>%
   select(-c(total_count, total_pop, lowercl, uppercl, confidence, statistic, method)) 
   
 las_matrix %>%

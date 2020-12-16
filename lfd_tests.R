@@ -10,3 +10,10 @@ lfd %>%
 
 lfd %>%
   head()
+
+lfd  %>% 
+  mutate(date = lubridate::ymd(date)) %>%
+  ggplot(aes(date, cumLFDTests, fill = areaName)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~areaName) +
+  scale_y_log10()

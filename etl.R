@@ -54,7 +54,7 @@ sheets2 <- list_ods_sheets(paste0("data/",files[4]))
 
 
 ## LA tests
-la_cases <- read_ods((paste0("data/",files[2])), sheet = get_sheets[9], skip = 2)
+la_cases <- read_ods((paste0("data/",files[9])), sheet = 2, skip = 2)
 la_tests <- read_ods((paste0("data/",files[2])), sheet = sheets1[8], skip = 2)
 
 la_cases_l <- la_cases %>%
