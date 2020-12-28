@@ -1,0 +1,40 @@
+---
+title: "Deaths in care homes"
+output: html_notebook
+date: "`r lubridate::dmy(Sys.Date())`"
+---
+
+### Deaths in care homes as a proportion of all COVID19-related deaths
+
+```{r}
+
+library(pacman)
+p_load(tidyverse)
+
+care_homes <- read_csv("https://daisy.coronavirus.data.gov.uk/api/v1/data?filters=areaType=nation;areaName=England&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newWeeklyNsoCareHomeDeathsByRegDate%22:%22newWeeklyNsoCareHomeDeathsByRegDate%22,%22cumWeeklyNsoCareHomeDeathsByRegDate%22:%22cumWeeklyNsoCareHomeDeathsByRegDate%22%7D&format=csv") %>%
+  mutate(pod = "care_home")
+ 
+ons_deaths <- read_csv("https://daisy.coronavirus.data.gov.uk/api/v1/data?filters=areaType=nation;areaName=England&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newWeeklyNsoDeathsByRegDate%22:%22newWeeklyNsoDeathsByRegDate%22,%22cumWeeklyNsoDeathsByRegDate%22:%22cumWeeklyNsoDeathsByRegDate%22%7D&format=csv") %>%
+  mutate(pod = "all")
+
+deaths <- left_join(ons_deaths, care_homes, by = "date")
+
+summary(deaths)
+
+```
+
+```{r}
+
+prop_ch <- deaths %>%
+  mutate(new = round(100 * newWeeklyNsoCareHomeDeathsByRegDate / newWeeklyNsoDeathsByRegDate, 2),
+         cum = round(100 * cumWeeklyNsoCareHomeDeathsByRegDate / cumWeeklyNsoDeathsByRegDate, 2))
+
+prop_ch %>%
+  select(date, new, cum) %>%
+  filter(date >= "2020-03-01") %>%
+  ggplot(aes(date, new)) +
+  geom_col() +
+  geom_line(aes(date, cum)) +
+  labs(title = "% total covid19 related deaths in care homes") +
+  theme(plot.title.position = "plot")
+```
