@@ -2,7 +2,7 @@
 library(tidyverse)
 library(lubridate)
 
-data <- read_csv("https://uks-covid19-pubdash-dev.azure-api.net/v1/data?filters=areaType=nation;areaName=England&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newCasesBySpecimenDate%22:%22newCasesBySpecimenDate%22,%22cumCasesBySpecimenDate%22:%22cumCasesBySpecimenDate%22,%22newPeopleTestedBySpecimenDate%22:%22newPeopleTestedBySpecimenDate%22,%22cumPeopleTestedBySpecimenDate%22:%22cumPeopleTestedBySpecimenDate%22%7D&format=csv")
+data <- read_csv("https://daisy.coronavirus.data.gov.uk/v1/data?filters=areaType=nation;areaName=England&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newCasesBySpecimenDate%22:%22newCasesBySpecimenDate%22,%22cumCasesBySpecimenDate%22:%22cumCasesBySpecimenDate%22,%22newPeopleTestedBySpecimenDate%22:%22newPeopleTestedBySpecimenDate%22,%22cumPeopleTestedBySpecimenDate%22:%22cumPeopleTestedBySpecimenDate%22%7D&format=csv")
 
 head(data)
 
