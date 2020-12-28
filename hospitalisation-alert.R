@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(readxl)
+library(tidytext)
 
 hosp <- read_csv("https://coronavirus.data.gov.uk/api/v2/data?areaType=nhsTrust&metric=hospitalCases&format=csv")
 
@@ -38,15 +39,31 @@ hosp_alerts <- trust_alerts %>%
 
 
 hosp_alerts %>%
-  mutate(TrustName = str_remove_all(TrustName, "NHS Trust|Foundation")) %>%
+  mutate(TrustName = str_remove_all(TrustName, "NHS|Trust|Foundation")) %>%
   left_join(cpop) %>%
   group_by(TrustCode) %>%
   mutate(seven_day = zoo::rollsum(hospitalCases, k = 7, na.pad = TRUE)) %>%
   mutate(seven_day_rate = 1000000 * seven_day/sum) %>%
-  filter(date >= "2020-09-01") %>%
+  filter(date.y >= "2020-11-01") %>%
+  mutate(trust = fct_reorder(TrustName, alertLevel)) %>%
+  group_by(alertLevelName) %>%
   ggplot(aes(date.y, seven_day_rate)) +
   geom_line(aes(group = alertLevelName, colour = factor(alertLevel))) +
   facet_wrap(~TrustName) +
+  scale_y_reordered()
+  scale_y_discrete()
   viridis::scale_color_viridis(discrete = TRUE, direction = -1, option = "inferno")
 
+  hosp_alerts %>%
+    mutate(TrustName = str_remove_all(TrustName, "NHS|Trust|Foundation"), 
+           date.y = lubridate::ymd(date.y)) %>%
+    left_join(cpop) %>%
+    group_by(TrustCode) %>%
+    mutate(seven_day = zoo::rollsum(hospitalCases, k = 7, na.pad = TRUE)) %>%
+    mutate(seven_day_rate = 1000000 * seven_day/sum) %>%
+    filter(date.y == max(date.y) - 3) %>%
+    ggplot(aes(reorder(TrustName, seven_day_rate), seven_day_rate, fill = factor(alertLevelName))) +
+    geom_col() +
+    coord_flip()
 
+           
