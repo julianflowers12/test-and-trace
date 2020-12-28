@@ -14,9 +14,7 @@ pos <- data %>%
          sevenDayPos = zoo::rollmean(pos, k = 7, align = "center", na.pad = TRUE)) %>%
   filter(date < today() - days(5))
 
-head(pos) 
-%>%
-  select(date)
+
 pos %>% 
   ggplot() +
   #geom_col(aes(date, pos)) +
