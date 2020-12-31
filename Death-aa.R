@@ -23,11 +23,27 @@ ldw <- latest_data %>%
 
 ## plot latest week as scatter plot
 
-ldw %>%
-  filter(weekno == 48) %>%
-  pivot_wider(names_from = "metric", values_from = "weeksum") %>%
+ldw_latest <- ldw %>%
+  filter(weekno == 50) %>%
+  pivot_wider(names_from = "metric", values_from = "weeksum") 
+
+ldw_latest %>%
   ggscatmat(columns = 3:5) +
   geom_smooth(method = "lm", se = FALSE)
+
+## model
+library(ggfortify)
+ldw_latest_mod <- lm(cumOnsDeathsByRegistrationDateRate ~ cumDeaths60DaysByDeathDateRate, data = ldw_latest)
+
+broom::augment(ldw_latest_mod ,ldw_latest) %>%
+  ggplot(aes(cumOnsDeathsByRegistrationDateRate, .fitted)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+broom::tidy(ldw_latest_mod)
+
+autoplot(ldw_latest_mod)
+
 
 ## ONS death rates (COVID on death certificate) are
 ## highly correlated with death rates in people with 

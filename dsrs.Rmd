@@ -2,7 +2,6 @@
 title: "DSRs"
 date: "`r Sys.Date()`"
 author: "Julian Flowers"
-
 ---
 
 ```{r setup, include = FALSE}
@@ -37,17 +36,10 @@ tail(test$dsr)
 
 ## get tier information
 
-destfile <- tempfile()
+tiers <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=ltla&metric=alertLevel&format=csv")
 
-curl::curl_download("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/938970/2020-11-26_COVID-19_Press_Conference_Data.xlsx", destfile = destfile)
-
-sheets <- excel_sheets(destfile)
-
-tiers <- read_excel(destfile, sheet = 4, skip = 3) %>%
-  janitor::clean_names()
-
-
-tiers
+tiers <- tiers %>%
+  filter(date == max(date))
 
 
 
@@ -55,67 +47,110 @@ tiers
 
 ```
 
-## DSRs
+## DSRs vs tiers
 
-```{r}
+```{r fig.height= 14, fig.width=6}
 
-#unique(test$dsr$areaName)
-
-t1 <- c("Cornwall and Isles of Scilly", "Isle of Wight", "Liverpool", "Swale", "Kingston upon Hull, City of", "Manchester", "South Cambridgeshire")
 
 dsr_tiers <- test$dsr %>%
-  left_join(tiers, by = c("areaName" = "local_authority_district_april_2019_name")) 
-
+  left_join(tiers, by = "areaName")
 
 dsr_1 <- dsr_tiers %>%
-  #filter(areaName %in% t1) %>%
-  ggplot(aes(date, value, group = areaName, colour = local_covid_19_tier)) +
-  geom_line(show.legend = FALSE) +
+  filter(date.x == max(date.x)) %>%
+  ggplot(aes(reorder(areaName, value), value, fill = alertLevelName)) +
+  geom_col() +
   labs(y = "Standardised case rate", 
        x = "Date", 
        title = "Age standardised 7-day rolling case rates per 100,000") +
-  scale_x_date(breaks = "months") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
-        plot.title.position = "plot", 
-        panel.background = element_blank()) 
+  coord_flip() +
+  theme(axis.text.y = element_text(size = 4))
 
-library(plotly)
-ggplotly(dsr_1)
+dsr_1
+# library(plotly)
+# ggplotly(dsr_1)
 ```
 
 ```{r}
 
 dsr_tiers %>%
-    filter(date == max(date), !is.na(local_covid_19_tier)) %>%
+    filter(date.x == max(date.x), !is.na(alertLevel)) %>%
     ggplot() +
-    geom_density(aes(value, fill = local_covid_19_tier), alpha = .4)
+    geom_density(aes(value, fill = alertLevelName), alpha = .4)
 
 
 
 ```
 
-
-
-```{r fig.height= 14, fig.width=10}
+```{r fig.height= 20, fig.width=10}
 
 dsr_tiers %>%
   group_by(areaName) %>%
-  filter(date == max(date), !is.na(local_covid_19_tier)) %>%
+  filter(date.x == max(date.x), !is.na(alertLevel)) %>%
   ggplot(aes(reorder(areaName, -value), value)) +
-  geom_point(aes(colour = local_covid_19_tier), size = 1) +
-  geom_linerange(aes(ymax = uppercl, ymin = lowercl, colour = local_covid_19_tier)) +
+  geom_point(aes(colour = alertLevelName), size = 1) +
+  geom_linerange(aes(ymax = uppercl, ymin = lowercl, colour = alertLevelName)) +
   coord_flip() +
   theme(axis.text = element_text(size = 6), 
         panel.background = element_blank(), 
         legend.position = "") +
   labs(x = "", y = "Rate") +
   viridis::scale_colour_viridis(discrete = TRUE, option = "D", direction = -1, name = "") +
-  facet_wrap(~local_covid_19_tier, nrow = 1)
-
-
-
+  facet_wrap(~alertLevel, nrow = 1)
 
 
 ```
 
-### 
+### Cluster analysis of ltla covid data
+
+```{r clustering, fig.height= 6, fig.width=6}
+
+library(Rtsne)
+library(dbscan)
+set.seed(123)
+cl_data <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=ltla&metric=newCasesBySpecimenDateChangePercentage&metric=newCasesBySpecimenDateRollingRate&metric=uniqueCasePositivityBySpecimenDateRollingSum&metric=newDeaths60DaysByDeathDateRollingRate&format=csv")
+
+
+cl_data_1 <- cl_data %>%
+  filter(date == max(date), 
+         str_detect(areaCode, "^E")) %>%
+  left_join(tiers, by = "areaName")
+
+cl_data_2 <- cl_data_1 %>%
+  select(5:8) %>%
+  mutate_if(is.numeric, function(x) ifelse(is.na(x), median(x, na.rm = TRUE), x)) %>%
+  mutate_if(is.numeric, scale) 
+
+tsne <- cl_data_2 %>%
+  as.matrix() %>%
+  Rtsne::Rtsne() 
+
+clust <- dbscan::hdbscan(tsne$Y, minPts = 11, gen_hdbscan_tree = TRUE)
+
+data.frame(tsne$Y, clust$cluster) %>%
+  ggplot(aes(X1, X2, colour = factor(clust.cluster))) +
+  geom_point()
+
+df <- data.frame(cl_data_1, cluster = clust$cluster)
+df %>%
+  select(areaName, cluster, alertLevelName) %>%
+  DT::datatable(options = list(pageLength = 25), 
+                filter = "top")
+```
+
+```{r}
+df %>%
+  mutate_at(.vars = 5:8, scale) %>%
+  group_by(cluster) %>%
+  summarise(across(5:8, mean)) %>% 
+  rename(change = newCasesBySpecimenDateChangePercentage, case_rate = newCasesBySpecimenDateRollingRate, pos_rate = uniqueCasePositivityBySpecimenDateRollingSum, deaths = newDeaths60DaysByDeathDateRollingRate) %>%
+  pivot_longer(names_to = "metric", values_to = "values", cols = 2:5) %>%
+  ggplot(aes(metric, values)) +
+  geom_point() +
+  geom_line(aes(group = cluster)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  coord_polar() +
+  facet_wrap(~cluster)
+  
+
+
+```
