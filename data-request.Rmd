@@ -1,0 +1,267 @@
+---
+title: "Data requests"
+output: 
+    html_notebook:
+        toc: yes
+---
+
+```{r setup, include = FALSE}
+
+library(pacman)
+
+p_load(BlandAltmanLeh, tidyverse)
+
+
+```
+
+## Public reporting
+
+The dashboard is not the only source of public reporting of COVID data. It is the official source for key statistics as agreed with the the SofS for Health, No. 10 and the Devolved Administations. The purpose of the dashboard is:
+
+> The dashboard presents progress of the coronavirus pandemic as an up to date and authoritative summary of key information. This includes levels of infections, the impact on health in the UK and on measures taken to respond. It presents a dynamic contemporary picture and is updated daily.
+
+> It meets a strongly expressed need from the public for timely updates at national and local level to ensure good understanding of the day to day progress of the pandemic. This is achieved through interactive maps and trends over time of key measures relating to testing capacity and activity, newly confirmed cases, hospital admissions and deaths.
+
+> The dashboard provides a tool for developers and analysts by supporting reuse of data through access to the results in machine readable files and via an API. To ensure high public value and quality, the statistics are presented in line with the Code of Practice for Statistics. Information is provided on the strengths and weaknesses of the data to help users to interpret them correctly.
+
+It is not intended to be fully comprehensive and its contents are determined by user needs.
+
+There are other sources of public reporting:
+
+-   Test and trace weekly reports
+-   PHE weekly surveillance reports
+-   ONS weekly reports
+-   NHSE reports including vaccinations and healthcare data
+
+## Vaccinations
+
+Statistics are published by NHS England and data made available on the dashboard is agreed with with NHSE. The dashboard currently publishes weekly data at national level on first doses. We hope to develop further statistics as vaccination programmes are rolled out.
+
+## Viral variants
+
+There are detailed reports on viral variants.
+
+<https://www.gov.uk/government/publications/investigation-of-novel-sars-cov-2-variant-variant-of-concern-20201201>
+
+```{r}
+library(myScrapers)
+library(readtext)
+library(tabulizer)
+
+url <- "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/947048/Technical_Briefing_VOC_SH_NJL2_SH2.pdf"
+url1 <- "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/948121/Technical_Briefing_VOC202012-2_Briefing_2_FINAL.pdf"
+rt <- readtext(url)
+rt1 <- readtext(url1)
+
+text <- bind_rows(rt, rt1)
+
+text <- text %>%
+  mutate()
+
+tabulizer::extract_tables(url1)
+
+```
+
+Daily figures were published to accompany the press briefing of 30th December.
+
+```{r}
+library(janitor)
+data <- tempfile()
+download("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/948573/2020-12-30_COVID-19_Press_Conference_Data.xlsx", data)
+
+variant <- read_excel(data, excel_sheets(data)[4], skip = 3)
+region <- read_excel(data, excel_sheets(data)[4], skip = 1) %>%
+  slice(1)
+metric <- read_excel(data, excel_sheets(data)[4], skip = 1) %>%
+  slice(2)
+
+variant_l <- variant %>%
+  mutate(Date = excel_numeric_to_date(as.numeric(Date))) %>%
+  pivot_longer(names_to = "date", values_to = "propn", cols = 2:19)
+
+region <- region %>%
+  t() %>%
+  data.frame() %>%
+  slice(-1) %>%
+  filter(!is.na(.)) %>%
+  rename(region = 1)
+
+variant_l %>%
+  filter(!is.na(propn)) %>%
+  mutate(region = rep(region$region, 98), 
+        date = str_remove(date, "\\...\\d{1,}"), 
+        date = str_remove(date, "compatible")) %>%
+  pivot_wider(names_from = "date", values_from = "propn") %>%
+  clean_names() %>%
+  ggplot(aes(date, percent_testing_positive_new_variant, group = region, colour = region)) +
+  geom_line() +
+  geom_line(aes(date, percent_testing_positive_other, colour = region)) +
+  labs(title = "Positivity rates") +
+  theme(plot.title.position = "plot")
+   
+
+```
+
+# COVID deaths
+
+The impact of COVID on mortality still seems to cause considerable confusion. We are commonly asked how many people have died **of** COVID as opposed to **with** COVID. Some of the confusion is due to the different ways of measuring COVID deaths and the terminology. People think the number of deaths is either over-exaggerated or under-exaggerated.
+
+There are 4 publicly available statistics on COVID deaths.
+
+1.  The official daily metric is deaths within 28 days of a COVID positive test. The methodology is [here](https://www.gov.uk/government/publications/phe-data-series-on-deaths-in-people-with-covid-19-technical-summary) and the data are available [here](https://coronavirus.data.gov.uk/details/deaths)
+2.  Weekly figures from the Office for National Statistics on excess deaths based on recording of COVID19 on the death certificate. These data are available [here](https://coronavirus.data.gov.uk/details/deaths)
+3.  Deaths in hospital in people with a COVID positive test. This is produced by NHS England.
+4.  Weekly excess mortality reports produced by PHE which compare the number of deaths in England since 20th March 2020 with expected deaths based on the last 5 years of data.
+
+<https://osr.statisticsauthority.gov.uk/the-challenges-of-counting-covid-deaths/>
+
+Causes of death statistics are derived from the death certificates which are completed by the doctors who attended the patient in their final illness. All deaths in hospital patients are also scrutinised by [Medical Examiners](https://www.england.nhs.uk/establishing-medical-examiner-system-nhs/) who agree and assure the accuracy of death certificates of people who died in that hospital.
+
+Several causes of death can be recorded on a death certificate - death certificates are passed to the Office for National Statistics (ONS) who use an internationally agreed algorithm to assign one of these causes as the *underlying* cause of death. Underlying causes are what is counted for statistical purposes.
+
+The official statistic - deaths within 28 days of a positive test - starts with all known cases, and looks up the NHS Personal Demographics Service (NHS PDS) to see who has died. The NHS PDS is regularly updated to flag people who have died (so for example they can be removed from waiting lists or appointments, or to measure treatment effectiveness). It can be updated more quickly than death registration data and can be used to generate a daily figure for death reporting. By contrast, deaths based on ONS registration cannot be reliably updated daily due to time lags in death registration, reporting and coding.
+
+If we compare the figures from these different sources for England, we can see that the 28 day deaths count is the lowest. This is criticised by some as an over-estimate because it includes deaths from any cause but recent estimates show that 97% of all deaths included in this statistic have COVID on the death certificate. Most authorities think the ONS estimate is more realistic - even this may be an underestimate because it is likely that many deaths in care homes or at home were due to COVID but attributed to other causes of death because deaths in these settings were not COVID tested.
+
+The excess deaths figure tells us that 64000 more people in England died than would have been expected in the latter 9 months of 2020, taking into account the previous 5 years death rates, the size and age of the population, and seasonal factors. These data also show that deaths from some other causes decreased - notably cancer and other respiratory diseases - whereas deaths from heart disease and stroke were higher than expected.
+
+All in all, there have been 10% more deaths in 2020 than would have been expected if the death rates in the previous 5 years continued to apply. It is worth noting that there are more deaths than expected across all adult age-groups.
+
++----------------------------------------------------------------+----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+| \                                                              | Deaths                     | Note                                                                                                                                          |
+| Source                                                         |                            |                                                                                                                                               |
++================================================================+===========================:+===============================================================================================================================================+
+| Deaths within 28 days (up to 11th December)                    | 56683                      |                                                                                                                                               |
++----------------------------------------------------------------+----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+| Deaths within 60 days (up to 11th December)                    | 62494                      |                                                                                                                                               |
++----------------------------------------------------------------+----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+| Deaths with COVID19 on death certificate (up to 11th December) | 67591                      |                                                                                                                                               |
++----------------------------------------------------------------+----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+| Excess deaths (from 20th March to 11th December)               | 64490                      | Most of these are attributable to COVID                                                                                                       |
++----------------------------------------------------------------+----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+| Deaths in hospital                                             | 44472                      | This is is a subset of all deaths - about 66% of all COVID deaths occur in hospital - this gives an estimate of 67313 COVID deaths in England |
++----------------------------------------------------------------+----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+
+```{r, as-deaths}
+
+library(purrr)
+
+deaths <- jsonlite::fromJSON("https://coronavirus.data.gov.uk/api/v1/data?filters=areaType=nation;areaName=England&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newDeaths28DaysByDeathDateAgeDemographics%22:%22newDeaths28DaysByDeathDateAgeDemographics%22%7D&format=json", simplifyDataFrame = TRUE)
+
+deaths_df <- deaths$data %>%
+ unnest(5)
+  
+deaths_df <- deaths_df %>%
+  pivot_longer(names_to = "metric", values_to = "vals", cols = 6:8)
+
+deaths_df %>% 
+  mutate(date = lubridate::ymd(date)) %>%
+  filter(str_detect(metric, "Rate")) %>%
+  ggplot(aes(date, vals, colour = age, group = age)) +
+  geom_line() +
+  viridis::scale_color_viridis(discrete = TRUE, direction = -1, option = "plasma") +
+  labs(title = "Age-specifc COVID-associated death rates in England")
+
+
+```
+
+## Post mortems in COVID19 deaths
+
+Guidance from the Royal College of Pathologists (<https://www.rcpath.org/uploads/assets/d5e28baf-5789-4b0f-acecfe370eee6223/fe8fa85a-f004-4a0c-81ee4b2b9cd12cbf/Briefing-on-COVID-19-autopsy-Feb-2020.pdf>) states \> In general, if a death is believed to be due to confirmed COVID-19 infection, there is unlikely to be any need for a post-mortem examination to be conducted and the Medical Certificate of Cause of Death should be issued.
+
+There are no statistics on how many pms have been performed in COVID related deaths but it is unlikely that many have been performed.
+
+<https://www.gov.uk/government/publications/wuhan-novel-coronavirus-initial-investigation-of-possible-cases/investigation-and-initial-clinical-management-of-possible-cases-of-wuhan-novel-coronavirus-wn-cov-infection>
+
+[Check with RW]
+
+NHSE publish data as part of their COVID reporting on how many COVID deaths in hospital have postmortem COVID results.
+
+### NHS data
+
+<https://osr.statisticsauthority.gov.uk/news/uk-data-on-hospital-capacity-and-occupancy/#england>
+
+## Statistics on contacts, timing
+
+These are available in the weekly test-and-trace reports. There is no current plan to include them in the dashboard
+
+## 
+
+```{r fig.height=6, fig.width=6}
+cases <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&metric=cumCasesByPublishDate&metric=cumCasesBySpecimenDate&metric=newCasesByPublishDate&metric=newCasesBySpecimenDate&metric=newCasesBySpecimenDateDirection&format=csv")
+
+cases %>%
+  group_by(areaName) %>%
+  #filter(str_detect(areaCode, "^E")) %>%
+  mutate(ctot = sum(newCasesByPublishDate, na.rm = TRUE), 
+         ntot = sum(newCasesBySpecimenDate, na.rm = TRUE), 
+         diff = ntot - ctot) %>%
+  slice(1)
+```
+
+```{r, bland altman plots}
+
+cases_ba <- cases %>%
+  group_by(areaName) %>%
+  na.omit() %>%
+   mutate(new_spec_lead = lead(newCasesBySpecimenDate),
+     mean = (newCasesByPublishDate + new_spec_lead) / 2, 
+         diff = newCasesByPublishDate - new_spec_lead) 
+
+cases_ba %>%
+  ggplot(aes(mean, diff, colour = areaName)) +
+  geom_point() +
+  #geom_line(aes(date, newCasesBySpecimenDate)) +
+  facet_wrap(~areaName, scales = "free")
+
+
+title <- "England"
+
+cases_wales <- cases_ba %>%
+  filter(areaName == title) 
+
+
+bas <- bland.altman.stats(group1 = cases_wales$newCasesByPublishDate, group2 = cases_wales$new_spec_lead)
+  
+data.frame(means = bas$means, diffs = bas$diffs) %>%
+  ggplot(aes(means, diffs)) +
+  geom_ribbon(aes(ymin = bas$lower.limit, ymax = bas$upper.limit), alpha = 0.1) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  theme(panel.background = element_blank()) +
+  labs(title = title)
+  
+## Wales 
+
+cases_wales[abs(cases_wales$diff) > 10000, ]
+
+```
+
+```{r, direction of change}
+
+
+cases %>%
+  mutate(direction = ifelse(newCasesBySpecimenDateDirection == "UP", .1,
+                            ifelse(newCasesBySpecimenDateDirection == "DOWN", -.1 , 0))) %>%
+  na.omit() %>%
+  ggplot(aes(date, newCasesBySpecimenDateDirection, size = newCasesBySpecimenDate, color = newCasesBySpecimenDateDirection)) +
+  geom_point(show.legend = FALSE) +
+  facet_wrap(~areaName, scales = "free") +
+  scale_color_brewer(palette = "Dark2") +
+  geom_vline(xintercept = as.Date("2020-11-05")) +
+  geom_vline(xintercept = as.Date("2020-12-15")) +
+  geom_vline(xintercept = as.Date("2020-07-04")) +
+  geom_vline(xintercept = as.Date("2020-03-23")) 
+
+
+  
+  mutate(total = sum(newCasesBySpecimenDate, na.rm = TRUE), 
+         daily_pub_change = -cumCasesByPublishDate + lag(cumCasesByPublishDate), 
+         daily_diff = daily_pub_change - lag(newCasesByPublishDate)) %>%
+  filter(date >= "2020-09-01") %>%
+  summarise(check = max(cumCasesByPublishDate, na.rm = TRUE),
+            tot = sum(newCasesByPublishDate, na.rm = TRUE), 
+            total) %>%
+  mutate_if(is.numeric, sum) %>%
+  mutate(diff = check - tot)
+```
