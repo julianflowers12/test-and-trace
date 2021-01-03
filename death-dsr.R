@@ -165,11 +165,11 @@ la_dsr_utla <- la_final %>%
 
 ## plot
 
-plot <- la_dsr_utla %>%
+plot1 <- la_dsr_utla %>%
   mutate(date = lubridate::ymd(date)) %>%
   #filter(areaName == "Nottingham") %>% 
   ggplot(aes(date, value)) +
-  geom_line(lwd = 0.1) +
+  geom_col(lwd = 0.1) +
   geom_ribbon(aes(ymin = lowercl, ymax = uppercl), fill = "grey10") +
   labs(y = "Age-adjusted rate per 100,000", 
        title = "Age-adjusted rates", 
@@ -182,7 +182,9 @@ plot <- la_dsr_utla %>%
   facet_wrap(~areaName) +
   theme_light()
 
-plot  
+plot1 +
+  theme(panel.background = element_blank(), 
+        strip.text = element_text(size = 6))
 
 
 #######
