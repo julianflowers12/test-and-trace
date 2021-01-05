@@ -4,22 +4,23 @@ library(tidyverse)
 library(readxl)
 library(tidytext)
 
-hosp <- read_csv("https://coronavirus.data.gov.uk/api/v2/data?areaType=nhsTrust&metric=hospitalCases&format=csv")
-mv  <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=nhsTrust&metric=covidOccupiedMVBeds&format=csv")
+hosp <- read_csv("https://coronavirus.data.gov.uk/api/v2/data?areaType=nhsTrust&metric=hospitalCases&format=csv") ## hospitalisation data
+mv  <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=nhsTrust&metric=covidOccupiedMVBeds&format=csv") ## ventilated patients data
 
 
-alert <- read_csv("https://coronavirus.data.gov.uk/api/v2/data?areaType=ltla&metric=alertLevel&format=csv")
+alert <- read_csv("https://coronavirus.data.gov.uk/api/v2/data?areaType=ltla&metric=alertLevel&format=csv") ## alert levels at LTLA
 
-lu <- read_csv("lu.csv")
+lu <- read_csv("lu.csv") ## msoa - trust lookup
 
-cpop <- read_csv("cpop.csv")
+cpop <- read_csv("cpop.csv") ## trust catchment populations
 
+## calculate trust cathcment populations for 2018 (latest year available)
 cpop <- cpop %>%
   filter(CatchmentYear == 2018) %>%
   group_by(TrustCode) %>%
   summarise(sum = sum(Catchment))
 
-## from here <https://app.box.com/s/qh8gzpzeo1firv1ezfxx2e6c4tgtrudl/file/646073527000>
+## from here <https://app.box.com/s/qh8gzpzeo1firv1ezfxx2e6c4tgtrudl/file/646073527000> - source of lookup and catchment data
 
 lu %>%
   count(TrustType)
@@ -39,6 +40,7 @@ hosp_alerts <- trust_alerts %>%
   left_join(mv, by = c("TrustCode" = "areaCode")) %>%
   select(date.y, alertLevel, alertLevelName, TrustCode, TrustName, covidOccupiedMVBeds)
 
+## plot ventilation data trend as venitalited patients per million catchment population by trust
 
 hosp_alerts %>%
   mutate(TrustName = str_remove_all(TrustName, "NHS|Trust|Foundation"),
@@ -57,6 +59,9 @@ hosp_alerts %>%
   labs(title = "Population rate of mechanical ventialation bed occupancy per million population", 
          subtitle = "By NHS Trust: 7-day rate") +
   viridis::scale_color_viridis(discrete = TRUE, direction = -1, option = "plasma", end = .5)
+
+## plot most recent ventilation data as venitalited patients per million catchment population by trust
+
 
 hosp_alerts %>%
     mutate(TrustName = str_remove_all(TrustName, "NHS|Trust|Foundation"), 

@@ -1,0 +1,15 @@
+base
+data.table
+tmap
+ggplot2
+ggmap
+geojsonio
+tidyverse
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+sf
