@@ -1,5 +1,5 @@
 ---
-title: "LA case maps"
+title: "MSOA case maps"
 output: github_document
 date: "`r Sys.Date()`"
 ---
@@ -20,13 +20,13 @@ library(tidyverse)
 
 
 ```{r download-data}
-la <- fread("https://api.coronavirus.data.gov.uk/v2/data?areaType=ltla&metric=newCasesBySpecimenDateRollingRate&metric=newCasesBySpecimenDateChangePercentage&metric=newCasesBySpecimenDateDirection&format=csv")
-la1 <- la[date == max(date), ]
+msoa <- fread("https://api.coronavirus.data.gov.uk/v2/data?areaType=msoa&metric=newCasesBySpecimenDateRollingRate&metric=newCasesBySpecimenDateChangePercentage&metric=newCasesBySpecimenDateDirection&format=csv")
+msoa1 <- msoa[date == max(date), ]
 ```
 
 ```{r explore-data}
 
-skimr::skim(la1)
+skimr::skim(msoa1)
 
 
 ```
@@ -34,10 +34,10 @@ skimr::skim(la1)
 
 ```{r setup-mapping}
 
-shp <- "https://opendata.arcgis.com/datasets/3a4fa2ce68f642e399b4de07643eeed3_0.geojson"  ## la shape file from Open Geography portal
+shp <- "https://opendata.arcgis.com/datasets/826dc85fb600440889480f4d9dbb1a24_0.geojson"
 
-palette <- rev(viridis::cividis(15))
-palette1 <- viridis::viridis(3, direction = -1)
+palette <- rev(viridis::viridis(15))
+palette1 <- viridis::viridis(4, direction = -1)
 credits <- "Contains ordnance survey data © \nCrown copyright and database right 2020"
 
 
@@ -46,10 +46,10 @@ geodata <- geojson_read(shp, what = "sp")
 
 # glimpse(geodata)
 ## Select England wards
-seng <- subset(geodata, substr(lad19cd, 1, 1) == "E")
+seng <- subset(geodata, substr(msoa11cd, 1, 1) == "E")
 
 ## Join data to plot
-seng@data <- left_join(seng@data, la1, by=c("lad19cd" = "areaCode"))
+seng@data <- left_join(seng@data, msoa1, by=c("msoa11cd" = "areaCode"))
 
 
 ```
@@ -57,11 +57,13 @@ seng@data <- left_join(seng@data, la1, by=c("lad19cd" = "areaCode"))
 ```{r plot-change}
 
 u <- tm_shape(seng) +
-  tm_fill("newCasesBySpecimenDateDirection", style = "kmeans", palette = palette1 , n = 3,
+  tm_fill("newCasesBySpecimenDateDirection", style = "kmeans", palette = palette1 , n = 10,
           title = "Direction") +
   tm_credits( credits, size = 0.5, align = "right") +
-  tm_layout(legend.outside = FALSE, 
-            frame = FALSE) 
+  tm_layout(legend.outside = TRUE, 
+            frame = FALSE) +
+  tm_compass(position = c("left", "center")) + 
+  tm_scale_bar(position = c("left", "center"))
 
 u
 
@@ -73,33 +75,26 @@ v <- tm_shape(seng) +
   tm_fill("newCasesBySpecimenDateChangePercentage", style = "kmeans", palette = palette , n = 10,
           title = "% change") +
   tm_credits( credits, size = 0.5, align = "right") +
-  tm_layout(legend.outside = FALSE, 
-            frame = FALSE) 
+  tm_layout(legend.outside = TRUE, 
+            frame = FALSE) +
+  tm_compass(position = c("left", "center")) + 
+  tm_scale_bar(position = c("left", "center"))
 
 v
 
 ```
 
-```{r plot-rate, message=FALSE}
+```{r plot-rate}
 
 w <- tm_shape(seng) +
   tm_fill("newCasesBySpecimenDateRollingRate", style = "fisher", palette = palette , n = 10,
           title = "Rate") +
   tm_credits( credits, size = 0.5, align = "right") +
-  tm_layout(legend.outside = FALSE, 
-            frame = FALSE, 
-            legend.width = 2) 
+  tm_layout(legend.outside = TRUE, 
+            frame = FALSE) +
+  tm_compass(position = c("left", "center")) + 
+  tm_scale_bar(position = c("left", "center"))
 
-tmap::tmap_arrange(w, v, u)
-
-```
-
-
-```{r}
-library(cartogram)
-
-cartogram::cartogram_dorling()
-
+w
 
 ```
-

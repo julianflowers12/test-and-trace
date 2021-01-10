@@ -1,8 +1,14 @@
 ---
 title: "Deaths in care homes"
-output: html_notebook
-date: "`r lubridate::dmy(Sys.Date())`"
+output: github_document
+date: "`r Sys.Date()`"
 ---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+
+```
 
 ### Deaths in care homes as a proportion of all COVID19-related deaths
 
@@ -43,6 +49,7 @@ prop_ch %>%
 
 ```{r}
 library(devtools)
+library(lubridate)
 
 pos1 <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&metric=uniquePeopleTestedBySpecimenDateRollingSum&metric=uniqueCasePositivityBySpecimenDateRollingSum&format=csv")
 
@@ -96,9 +103,10 @@ cases %>%
 
 
 
-ggplot(aes(date, daily_diff)) +
-  geom_col() +
-  facet_wrap(~areaName, scales = "free")
-
-
 ```
+
+### Reporting cases and deaths
+
+For both cases and deaths we present two figures - the number of each **reported** each day, and the number of each by the date of event.
+
+If we take England an example, PHE receives positive test results from all the testing labs, public and private overnight each day. The number of cases reported is the difference between the number of cases in the database midnight on the day of report

@@ -2,6 +2,9 @@
 title: "DSRs"
 date: "`r Sys.Date()`"
 author: "Julian Flowers"
+output: 
+   github_document:
+always_allow_html: true
 ---
 
 ```{r setup, include = FALSE}
@@ -9,14 +12,14 @@ author: "Julian Flowers"
 knitr::opts_chunk$set(cache = TRUE,
                       message = FALSE, 
                       warning = FALSE,
-                      echo = FALSE)
+                      echo = TRUE)
 
 library(pacman)
 p_load(tidyverse, devtools, plotly, readxl)
 
 ```
 
-## Calculate dsrs for local authorities
+## Calculate case rate dsrs for local authorities
 
 ```{r}
 
@@ -24,7 +27,7 @@ URL <- "https://github.com/julianflowers12/test-and-trace/blob/master/create_cas
 
 source_url(URL)
 
-test <- case_dsrs_las(area = "ltla")
+test <- case_dsrs_las(area = "utla")
 
 tail(test$dsr)
 
@@ -124,7 +127,7 @@ tsne <- cl_data_2 %>%
   as.matrix() %>%
   Rtsne::Rtsne() 
 
-clust <- dbscan::hdbscan(tsne$Y, minPts = 11, gen_hdbscan_tree = TRUE)
+clust <- dbscan::hdbscan(tsne$Y, minPts = 9, gen_hdbscan_tree = TRUE)
 
 data.frame(tsne$Y, clust$cluster) %>%
   ggplot(aes(X1, X2, colour = factor(clust.cluster))) +
@@ -133,8 +136,8 @@ data.frame(tsne$Y, clust$cluster) %>%
 df <- data.frame(cl_data_1, cluster = clust$cluster)
 df %>%
   select(areaName, cluster, alertLevelName) %>%
-  DT::datatable(options = list(pageLength = 25), 
-                filter = "top")
+  arrange(cluster) %>%
+  reactable::reactable(filterable = TRUE, searchable = TRUE)
 ```
 
 ```{r}

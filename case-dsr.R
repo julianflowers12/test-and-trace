@@ -104,7 +104,34 @@ las_matrix %>%
   coord_equal() +
   geom_vline(xintercept = as.Date("2020-11-06"))
 
-#######
+###############
+# correlation #
+###############
+
+library(tidygraph)
+library(ggraph)
+
+
+la_cases[between(date, "2020-12-01", "2020-12-29"), ][areaName == "England" & !age %in% c("unassigned", "0_59", "60+"), .(age, date, newCasesBySpecimenDateRollingRate)] %>%
+  pivot_wider(names_from = "date", values_from = "newCasesBySpecimenDateRollingRate") %>%
+  slice(-20) %>%
+  select(-1) %>%
+  cor() %>%
+  pairs()
+  as_tbl_graph() %>%
+  ggraph(., layout = "fr", weights = weight) +
+     geom_edge_link() +
+     geom_node_point()
+  
+
+
+
+
+
+
+
+
+
 
 modelled_peak <- function(df, area){
   
