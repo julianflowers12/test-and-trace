@@ -10,7 +10,12 @@ alert <- read_csv("https://coronavirus.data.gov.uk/api/v2/data?areaType=ltla&met
 
 lu <- read_excel("~/Dropbox/My Mac (Julians-MBP-2)/Downloads/2020 Trust Catchment Populations_Supplementary Trust Area lookup.xlsx")
 
+write_csv(lu, "lu.csv")
+
 cpop <- read_excel("~/Dropbox/My Mac (Julians-MBP-2)/Downloads/2020 Trust Catchment Populations Worksheet.xlsx", sheet = 2)
+
+write_csv(cpop, "cpop.csv")
+
 
 cpop <- cpop %>%
   filter(CatchmentYear == 2018) %>%

@@ -1,0 +1,105 @@
+---
+title: "LA case maps"
+output: github_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+## 
+
+```{r load-libraries, message = FALSE}
+library(data.table)
+library(tmap)
+library(ggmap)
+library(geojsonio)
+library(tidyverse)
+```
+
+
+```{r download-data}
+la <- fread("https://api.coronavirus.data.gov.uk/v2/data?areaType=ltla&metric=newCasesBySpecimenDateRollingRate&metric=newCasesBySpecimenDateChangePercentage&metric=newCasesBySpecimenDateDirection&format=csv")
+la1 <- la[date == max(date), ]
+```
+
+```{r explore-data}
+
+skimr::skim(la1)
+
+
+```
+
+
+```{r setup-mapping}
+
+shp <- "https://opendata.arcgis.com/datasets/3a4fa2ce68f642e399b4de07643eeed3_0.geojson"  ## la shape file from Open Geography portal
+
+palette <- rev(viridis::cividis(15))
+palette1 <- viridis::viridis(3, direction = -1)
+credits <- "Contains ordnance survey data © \nCrown copyright and database right 2020"
+
+
+## Download the data and convert to spatial polygon data frame
+geodata <- geojson_read(shp, what = "sp")
+
+# glimpse(geodata)
+## Select England wards
+seng <- subset(geodata, substr(lad19cd, 1, 1) == "E")
+
+## Join data to plot
+seng@data <- left_join(seng@data, la1, by=c("lad19cd" = "areaCode"))
+
+
+```
+
+```{r plot-change}
+
+u <- tm_shape(seng) +
+  tm_fill("newCasesBySpecimenDateDirection", style = "kmeans", palette = palette1 , n = 3,
+          title = "Direction") +
+  tm_credits( credits, size = 0.5, align = "right") +
+  tm_layout(legend.outside = FALSE, 
+            frame = FALSE) 
+
+u
+
+```
+
+```{r plot-percentage-change}
+
+v <- tm_shape(seng) +
+  tm_fill("newCasesBySpecimenDateChangePercentage", style = "kmeans", palette = palette , n = 10,
+          title = "% change") +
+  tm_credits( credits, size = 0.5, align = "right") +
+  tm_layout(legend.outside = FALSE, 
+            frame = FALSE) 
+
+v
+
+```
+
+```{r plot-rate, message=FALSE}
+
+w <- tm_shape(seng) +
+  tm_fill("newCasesBySpecimenDateRollingRate", style = "fisher", palette = palette , n = 10,
+          title = "Rate") +
+  tm_credits( credits, size = 0.5, align = "right") +
+  tm_layout(legend.outside = FALSE, 
+            frame = FALSE, 
+            legend.width = 2) 
+
+tmap::tmap_arrange(w, v, u)
+
+```
+
+
+```{r}
+library(cartogram)
+
+cartogram::cartogram_dorling()
+
+
+```
+

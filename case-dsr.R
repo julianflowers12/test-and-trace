@@ -31,45 +31,6 @@ la_cases %>%
 
 ## download 2019 LA populations from ONS
 
-curl::curl_download("https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fpopulationandmigration%2fpopulationestimates%2fdatasets%2fpopulationestimatesforukenglandandwalesscotlandandnorthernireland%2fmid2019april2019localauthoritydistrictcodes/ukmidyearestimates20192019ladcodes.xls", destfile = "lapops.xls")
-la_pops_m <- read_excel("~/New-VSCode-projects/test-and-trace/lapops.xls", sheet = 6, skip = 4)
-la_pops_f <- read_excel("~/New-VSCode-projects/test-and-trace/lapops.xls", sheet = 7, skip = 4)
-
-head(la_pops_f, 20)
-
-## convert to stacked format (long)
-
-la_pops_m_l <- la_pops_m  %>% 
-  pivot_longer(names_to = "age", values_to = "pop", 4:ncol(.))  %>% 
-  mutate(gender = "m")
-
-la_pops_f_l <- la_pops_m  %>% 
-  pivot_longer(names_to = "age", values_to = "pop", 4:ncol(.))  %>% 
-  mutate(gender = "f")   
-
-## stack male and female tables
-
-la_pops_p <- bind_rows(la_pops_m_l, la_pops_f_l)
-
-# x <- 0:89
-age.breaks <- seq(from = 0, to = 100, by = 5)
-# phutils::age.groups(x, age.breaks, final.open = TRUE,ordered_result = TRUE )
-
-## calculate populations by ageband and LA
-
-la_pops_p <- la_pops_p  %>% 
-  filter(age != "All ages", 
-         !is.na(Name))  %>% 
-  mutate(age = ifelse(age == "90+", "90", age),
-          age = as.numeric(age),
-         ageband = phutils::age.groups(age, age.breaks)) %>%
-  group_by(Code, Name, gender, ageband,  Geography1) %>%
-  summarise(pop_est = sum(pop))
-
-la_pops_p  %>% 
-    ungroup()  %>% 
-    count(Geography1)
-
 
 ## unstack by gender and calculate populations for all persons
 
@@ -88,7 +49,7 @@ la_final <- la_cases %>%
 ## calculate dsrs with CIs for UTLAs 
 
 la_dsr_ltla <- la_final %>%
-  filter(areaType == "ltla") %>%
+  filter(areaType == "region") %>%
   #filter(str_detect(areaName, "Bark"))
   #count(Geography1) %>%
   # filter(n != 19) %>%
@@ -110,7 +71,7 @@ plot <- la_dsr_ltla %>%
   #geom_ribbon(aes(ymin = lowercl, ymax = uppercl), fill = "goldenrod", colour = "blue") +
   labs(y = "Age-adjusted rate per 100,000", 
        title = "Age-adjusted case rates per 100,000", 
-       subtitle = "NW LAs and University cities are mostly beyond the peak; Some Kent LAs are still on the rise",
+       subtitle = "Highest in East of England, London and the South East",
        caption = "Directly standardised to the 2003 ESP") +
   geom_hline(yintercept = 100, colour = "red", lty = "dotted") +
   geom_vline(xintercept = as.Date("2020-11-06"), lty = "dotted") + 
@@ -143,7 +104,34 @@ las_matrix %>%
   coord_equal() +
   geom_vline(xintercept = as.Date("2020-11-06"))
 
-#######
+###############
+# correlation #
+###############
+
+library(tidygraph)
+library(ggraph)
+
+
+la_cases[between(date, "2020-12-01", "2020-12-29"), ][areaName == "England" & !age %in% c("unassigned", "0_59", "60+"), .(age, date, newCasesBySpecimenDateRollingRate)] %>%
+  pivot_wider(names_from = "date", values_from = "newCasesBySpecimenDateRollingRate") %>%
+  slice(-20) %>%
+  select(-1) %>%
+  cor() %>%
+  pairs()
+  as_tbl_graph() %>%
+  ggraph(., layout = "fr", weights = weight) +
+     geom_edge_link() +
+     geom_node_point()
+  
+
+
+
+
+
+
+
+
+
 
 modelled_peak <- function(df, area){
   

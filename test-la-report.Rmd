@@ -1,0 +1,89 @@
+---
+title: "LA covid reports"
+author: "Julian Flowers"
+date: "05/01/2021"
+output: html_document
+params:
+  areaName: "Amber Valley"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(pacman)
+p_load(tidyverse, patchwork)
+
+
+```
+
+## People tested
+
+Number of people tested (PCR test) in `r params$areaName`
+
+```{r people-tested}
+
+data <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=ltla&metric=uniqueCasePositivityBySpecimenDateRollingSum&metric=uniquePeopleTestedBySpecimenDateRollingSum&metric=newCasesBySpecimenDateRollingRate&format=csv")
+peopleTested <- data %>%
+  filter(areaName == params$areaName) %>%
+  ggplot(aes(date, uniquePeopleTestedBySpecimenDateRollingSum)) +
+  geom_line() +
+  labs(
+    title = paste0("People tested in ", params$areaName),
+    y = "People tested in seven-day period"
+  ) +
+  theme(plot.title.position = "plot")
+  
+  
+peopleTested
+
+
+
+
+```
+
+
+
+```{r positivity-rates}
+
+positivity <- data %>%
+  filter(areaName == params$areaName) %>%
+  ggplot(aes(date, uniqueCasePositivityBySpecimenDateRollingSum)) +
+  geom_line() +
+  labs(
+    title = paste0("Proportion testing positive in ", params$areaName),
+    y = "Proportion testing positive in seven-day period"
+  ) +
+  theme(plot.title.position = "plot")
+  
+  
+positivity
+
+```
+
+
+```{r case-rates}
+
+case_rates <- data %>%
+  filter(areaName == params$areaName) %>%
+  ggplot(aes(date, newCasesBySpecimenDateRollingRate)) +
+  geom_line() +
+  labs(
+    title = paste0("Case rates in ", params$areaName),
+    y = "Case rates per 100,000 population in seven-day period"
+  ) +
+  theme(plot.title.position = "plot")
+  
+  
+case_rates
+
+```
+
+```{r}
+
+
+
+
+
+
+```
+
