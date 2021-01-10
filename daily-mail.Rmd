@@ -26,7 +26,11 @@ The Daily Mail has made repeated accusations that PHE has made "blunders" in the
 
 ### Summary
 
+<<<<<<< HEAD
 [The Daily Mail's accusations are unfounded and a sugnificant misintrepretation of the data, and PHE's role in it. They are based on:
+=======
+The Daily Mail's accusations are unfounded and a significant misintrepretation of the data, and PHE's role in it. They are based on:
+>>>>>>> be9e067ee323856b7694b752cdb5e89c20a52aa4
 
 -   An oversimplistic analysis and failure to understand the data
 
@@ -42,13 +46,13 @@ The Daily Mail has made repeated accusations that PHE has made "blunders" in the
 
 To date more the 2.5 million people have tested positive for SARS-Cov-2 through PCR testing.
 
-Cases are reported on people testing positive, **not** positive tests. Positive test results for England are held in a database known as SGSS. There are equivalent databases for Northern Ireland (NI), Scotland and Wales. These databases receive positive test results daily (usually overnight) from testing labs across the country.
+Cases are reported as people testing positive, **not** positive tests. Positive test results for England are held in a database known as SGSS. There are equivalent databases for Northern Ireland (NI), Scotland and Wales. These databases receive positive test results daily (usually overnight) from testing labs across the country.
 
 The SGSS database collects data on all positive results for a wide range of communicable diseases, not only SARS-Cov-2. It has had to be substantially upgraded to manage lab returns for SARS-Cov-2 as the number of labs processing tests has grown. In the early part of the pandemic lab capacity was limited to NHS and PHE labs - known as *pillar1*. WIth the advent of mass-testing private and other labs were recruited - this tranche of testing is known as *pillar2*.
 
-To calculate **people** tested the data needs to be de-duplicated, that is each person who has had a positive PCR test is counted only once no matter how many how many tests - positive or negative - they have had. This de-duplication exercise is conducted by Public Health England for England data, and respective public health agencies across the UK.
+To calculate **people** tested the data needs to be de-duplicated, that is each person who has had a positive PCR test is counted only once no matter how many tests - positive or negative - they have had. This de-duplication exercise is conducted by Public Health England for England data, and respective public health agencies across the UK.
 
-Although both pillar data were de-duplicated, they were de-duplicated separately because they had separate date streams - they weren't combined initially. In order to get an accurate count of the number of **people** who had tested positive pillar1 and pillar2 data needed to be combined and de-duplication conducted across the combined dataset. The results of this exercise resulted in major changes to the data published and was implemented in public reporting on 2nd July. Similar exercises were conducted by other nations in the days and weeks that followed.
+Although both pillar data were de-duplicated, they were de-duplicated separately because they had separate data streams - they weren't combined initially. In order to get an accurate count of the number of **people** who had tested positive pillar1 and pillar2 data needed to be combined and de-duplication conducted across the combined dataset. The results of this exercise resulted in major changes to the data published and was implemented in public reporting on 2nd July. Similar exercises were conducted by other nations in the days and weeks that followed.
 
 Prior to 2nd July 2020 the public dashboard:
 
@@ -56,7 +60,7 @@ Prior to 2nd July 2020 the public dashboard:
 
 -   Reported England case data for pillar1 only. Case data for other countries was pillar1 with some pillar data for Scotland and Wales.
 
--   Was unable to report case numbers for sub-national areas like regions and local authorities.
+-   Was unable to report complete case numbers for sub-national areas like regions and local authorities.
 
 The de-duplication exercise had a number of consequences:
 
@@ -68,11 +72,13 @@ The de-duplication exercise had a number of consequences:
 
 ### Why doesn't the sum of daily reported cases add up the cumulative total reported cases?
 
+* For the first few months of the pandemic, the cumulative UK total cases was calculated by the DHSC and republished on the dashboard once DHSC had signed off the figures. The figures were published to https://www.gov.uk/guidance/coronavirus-covid-19-information-for-the-public and represented on the dasboard up to the 21st August - long after the date where the Daily Mail claims PHE made multiple corrections to the data
+
 There are 2 main reasons for this:
 
 1.  We do **not correct the daily reported count. These figures are the reported historical record of the number of cases in the pandemic on the the day they are reported and are not retrospectively amended. Tens of thousands of people have kept paper or digital records of the daily reported figures since the beginning of the pandemic and would raise questions of trustworthiness if we retrospectively amended the data.**
-2.  For this reason it there are corrections to be made, they are made to the cumulative total
-3.  We **cannot** c**orrect the daily reported count.** If cases are removed or added to the database in batches we can know when the relevant tests were done but not when they would have been reported. We do not have the data to do this, and we only get aggregate data from the DAs. This was especially the case for the pillar2 data which reflected data over a four month period.
+2.  For this reason if there are corrections to be made, they are made to the cumulative total
+3.  We **cannot** correct the daily reported count. If cases are removed or added to the database in batches we can know when the relevant tests were done but not when they would have been reported. We do not have the data to do this, and we only get aggregate data from the DAs. This was especially the case for the pillar2 data which reflected data over a four month period.
 4.  This is unlike reporting by specimen data which is a better way to understand the pandemic (see below)
 5.  For this reason, the UK cumulative figure is 30,000 less than the sum of daily reported cases since the 2nd July. A further correction was made on 27th November when 1,283 or so cases were removed from the UK total because of the correction made to reporting cases from the Milton Keynes Lighthouse lab.
 
@@ -158,6 +164,16 @@ england_data <- nations_data %>%
 
 england <- cum_comparison(england_data)
 
+england$return %>%
+  select(date, diff_pub_1) %>%
+  ggplot(aes(date, diff_pub_1)) +
+  geom_point() +
+  geom_vline(xintercept = as.Date("2020-07-02")) +
+    geom_vline(xintercept = as.Date("2020-11-28")) +
+  ggtitle("Difference between cumulative case count by published date \nand sum of daily published case counts") +
+  annotate("text", label = "80000 cases added to England \nas a result of national deduplication", x = as.Date("2020-06-01"), y = 40000)
+
+
 scotland_data <- nations_data %>%
   filter(str_detect(areaCode, "^S"))
 
@@ -172,6 +188,32 @@ ni_data <- nations_data %>%
   filter(str_detect(areaCode, "^N"))
 
 ni <- cum_comparison(ni_data)
+```
+
+
+```{r}
+
+options(scipen = 999)
+
+ni$return %>%
+  mutate(cum_lag = lead(cumCasesBySpecimenDate)) %>%
+  
+  ggplot(aes(date, cumCasesByPublishDate)) +
+  geom_line() +
+  geom_line(aes(date, cumpub), colour = "red") +
+  geom_line(aes(date, cum_lag), lty = "dotted") +
+  labs(caption = "Red = Sum of daily published date figures\n Black = Cumulative total\nDotted = Cumulative cases by specimen date", 
+       y = "Cumulative cases by published date", 
+       title = "Cumulative reported UK cases - whole pandemic") +
+  theme(plot.title.position= "plot")
+
+
+
+```
+
+
+
+```{r}
 
 library(patchwork)
 
