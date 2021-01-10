@@ -1,5 +1,5 @@
 ## etl
-if(!require("myScraoers"))devtools::install_github("julianflowers/myScrapers")
+if(!require("myScrapers"))devtools::install_github("julianflowers/myScrapers")
 library(myScrapers)
 library(tidyverse)
 library(downloader)
@@ -7,10 +7,15 @@ library(readODS)
 
 url <- "https://www.gov.uk/government/collections/nhs-test-and-trace-statistics-england-weekly-reports"
 
+data <- readODS::read.ods("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/948744/NHS_T_T_data_tables_w30.ods")
+
+browse
+
+https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/948744/NHS_T_T_data_tables_w30.ods
 ## extract links
 
 latest_data <- get_page_links(url) %>%
-  .[22] %>%
+  .[23] %>%
   enframe() %>%
   mutate(latest = paste0("https://www.gov.uk", value), 
          links = map(latest, get_page_links)) %>%
@@ -23,18 +28,18 @@ filenames <- basename(latest_data$links)
 
 
 for(i in 1:8){
-download(latest_data$links[i], paste0("data/", filenames[i]))
+downloader::download(latest_data$links[i], paste0("data/", filenames[i]))
 }
 
 ## extract files
 
 files <- list.files("data", pattern = "ods")
 
-get_sheets <- map(paste0("data/",files), ~(readODS::ods_sheets(.x)))
+get_sheets <- map(paste0("data/",files), ~(readODS::list_ods_sheets(.x)))
 
 get_sheets
 
-ltlap2 <- read_ods(paste0("data/",files[3]), sheet = 2) %>%
+ltlap2 <- read_ods(paste0("data/",files[3]), sheet = 3) %>%
   mutate_at(.vars = 7:ncol(.), as.numeric) %>%
   pivot_longer(names_to = "metric", values_to = "value", 7:ncol(.)-1) %>%
   mutate(date = lubridate::dmy(metric)) %>%
@@ -54,7 +59,11 @@ sheets2 <- list_ods_sheets(paste0("data/",files[4]))
 
 
 ## LA tests
-la_cases <- read_ods((paste0("data/",files[9])), sheet = 2, skip = 2)
+la_cases <- read_ods((paste0("data/",files[6])), sheet = 2)
+
+la_cases
+
+
 la_tests <- read_ods((paste0("data/",files[2])), sheet = sheets1[8], skip = 2)
 
 la_cases_l <- la_cases %>%
