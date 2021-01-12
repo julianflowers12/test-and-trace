@@ -76,7 +76,7 @@ t3 %>%
   slice(1:ncol(.)-263) %>%
   mutate(covid_percent = covid/(covid + `all cause`)) %>%
   #unnest()
-  reactable::reactable(filterable = TRUE, sortable = TRUE)
+  #reactable::reactable(filterable = TRUE, sortable = TRUE)
   ggplot(aes(date, covid_percent)) +
   geom_col() +
   geom_smooth(se = FALSE)
