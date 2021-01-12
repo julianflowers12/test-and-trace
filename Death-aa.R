@@ -42,7 +42,6 @@ broom::augment(ldw_latest_mod ,ldw_latest) %>%
 
 broom::tidy(ldw_latest_mod)
 
-autoplot(ldw_latest_mod)
 
 
 ## ONS death rates (COVID on death certificate) are
