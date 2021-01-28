@@ -1,0 +1,144 @@
+---
+title: "Safe transition of the coronavirus dashboard"
+author: "Julian Flowers"
+date: "27/01/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The coronavirus dashboard (<https://coronavirus.data.gov.uk>) is the public facing site for daily publication of official UK figures on the COVID pandemic
+
+It now serves in excess of 800,000 unique users a day, with a peak of 80,000 view a minute in the period. 5 Tb of data is downloaded daily. 50% of users
+
+We process over 500m rows of data daily to generate 100m data points which populate the website front end with 200 metrics.
+
+We provide access to:
+
+-   Daily data on tests, cases, deaths, vaccinations, health care metrics
+
+-   MSOA data
+
+-   Small area mapping and local statistics
+
+-   Extensive download and data reuse services via a downloads page and a set of APIs
+
+95% of our users are members of the general public but the service is widely used in central government including PHE, T&T and JBC; local goverment; the NHS; national and local media; academics, and international reporting agencies.
+
+We calculate
+
+-   UK figures which are reported daily on mainstream media
+
+-   Daily sitreps
+
+-   MSOA data
+
+-   5 metrics for tier decisions
+
+-   Rates, rolling average, rolling sums for several metrics
+
+It has evolved in 4 phases
+
+## How it works
+
+### Daily process
+
+-   Data is ingested from a wide range of data sources daily including PHE, NSHE, Test and Trace, Scottish, Welsh and Irish govt and public health agencies into the NHS Foundry System
+
+-   Data is a mix of large record datasets, spreadsheets and API calls
+
+-   Each data set undergoes a set of transformations (cleaning, aggregating) and calculations to extract the aggregate data from inputs or create metrics from the raw data. About x transformations are performed on the data
+
+-   This generated a set of outputs which are then transferred to blob storage on the NHS England Azure tenant. From there the data are uploaded to the dashboard database and made available
+
+-   Data is analysed to provide outputs for sitreps, EPicell, local authorities, DHSC and others.
+
+-   Data is released at 4 pm daily in a single deployment.
+
+-   Daily deaths (28 days)
+
+    -   The SGSS team send case data to NHS Digital batch tracing service for over night processing - this adds the fact of death. Tracing is done in batches of 250k records
+
+    -   The traced files are shared with Epicell first thing in the morning who then link additional data to generate a line list of deaths which is sent to the Foundry system - usually by 1pm
+
+-   SGSS
+
+    -   The dashboard takes several daily SGSS feeds for cases, positivity and tests during the course of the day.
+
+    -   SGSS is updated by overnight feeds from labs
+
+## Dashboard team
+
+Insert organogram
+
+#### Five teams
+
+![](Dashboard.png)
+
+-   Dev team
+
+    -   Front and back end development - API/ web pages/ databases
+
+    -   Liaison with Microsoft team who manage Azure infrastructure
+
+        -   Data stores
+
+        -   Cache
+
+        -   CDN
+
+        -   APi Management services
+
+        -   Resilience
+
+        -   Scaling
+
+-   Data team
+
+    -   Daily process
+
+    -   Daily deployment (G6s)
+
+    -   Layouts
+
+    -   Data design
+
+    -   Negotiation on data additions
+
+    -   Data for daily press conferences
+
+    -   Pre-release data
+
+    -   Ad hoc analysis
+
+    -   
+
+-   Pipeline team
+
+    -   Data flows and data management
+
+-   Digital team
+
+    -   User interaction design
+
+    -   Content design
+
+    -   Agile management
+
+    -   
+
+-   Management team
+
+## Governance
+
+## Risks and resilience
+
+:   
+
+## 
+
+## Recommendations

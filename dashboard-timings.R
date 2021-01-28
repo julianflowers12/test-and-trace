@@ -20,9 +20,11 @@ times1 %>%
   ggplot(aes(as.Date(name), diff_mins)) +
   geom_point()
 
-c <- qicharts2::qic(x = times1$date, y = times1$diff_mins, chart = "i", target = 0)
+c <- qicharts2::qic(x = times1$date, y = times1$diff_mins, chart = "i", target = 0, part = c(56, 100))
+c
 glimpse(c)
 c$data %>%
   View()
 
 c$data[which(c$data$y.sum > c$data$ucl), ]
+
