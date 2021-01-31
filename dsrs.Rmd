@@ -27,9 +27,25 @@ URL <- "https://github.com/julianflowers12/test-and-trace/blob/master/create_cas
 
 source_url(URL)
 
-test <- case_dsrs_las(area = "utla")
+dsrs <- case_dsrs_las(area = "utla")
 
-tail(test$dsr)
+
+
+```
+
+## Comparisons
+
+```{r}
+
+dsrs$dsr %>%
+  filter(str_detect(areaName, "Camb")) %>%
+  ggplot(aes(date, value)) +
+  geom_line()
+
+
+
+
+
 
 ```
 
@@ -55,7 +71,7 @@ tiers <- tiers %>%
 ```{r fig.height= 14, fig.width=6}
 
 
-dsr_tiers <- test$dsr %>%
+dsr_tiers <- dsrs$dsr %>%
   left_join(tiers, by = "areaName")
 
 dsr_1 <- dsr_tiers %>%
@@ -66,10 +82,9 @@ dsr_1 <- dsr_tiers %>%
        x = "Date", 
        title = "Age standardised 7-day rolling case rates per 100,000") +
   coord_flip() +
-  theme(axis.text.y = element_text(size = 4))
+  theme(axis.text.y = element_text(size = 8))
 
-dsr_1
-# library(plotly)
+dsr_1# library(plotly)
 # ggplotly(dsr_1)
 ```
 
@@ -115,8 +130,7 @@ cl_data <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=ltla&m
 
 cl_data_1 <- cl_data %>%
   filter(date == max(date), 
-         str_detect(areaCode, "^E")) %>%
-  left_join(tiers, by = "areaName")
+         str_detect(areaCode, "^E")) 
 
 cl_data_2 <- cl_data_1 %>%
   select(5:8) %>%
@@ -131,11 +145,13 @@ clust <- dbscan::hdbscan(tsne$Y, minPts = 9, gen_hdbscan_tree = TRUE)
 
 data.frame(tsne$Y, clust$cluster) %>%
   ggplot(aes(X1, X2, colour = factor(clust.cluster))) +
-  geom_point()
+  geom_point() +
+  viridis::scale_color_viridis(discrete = TRUE)
 
 df <- data.frame(cl_data_1, cluster = clust$cluster)
+
 df %>%
-  select(areaName, cluster, alertLevelName) %>%
+  select(areaName, cluster) %>%
   arrange(cluster) %>%
   reactable::reactable(filterable = TRUE, searchable = TRUE)
 ```

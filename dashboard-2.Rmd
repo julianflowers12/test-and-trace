@@ -13,7 +13,25 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-The coronavirus dashboard (<https://coronavirus.data.gov.uk>) is the public facing site for daily publication of official UK figures on the COVID pandemic. To deliver the dashboard we process over 500m rows of data daily to generate 100m data points which populate the website front end with 200 metrics covering data on tests, cases, deaths, healthcare metrics and vaccinations. The data is presented as a series of summaries, charts (epidemic curves) and small area data is available via an interactive map which includes a slider to view trends over time. We also update the R number and growth rate weekly. Users can localise the data via postcode searching, and drill into the map.
+The coronavirus dashboard (<https://coronavirus.data.gov.uk>) is the public facing site for daily publication of official UK figures on the COVID pandemic. To deliver the dashboard we
+
+-   process over 500m rows of data daily to generate 100m data points which populate the website front end with \> 200 metrics for 6791 MSOAs and 700 higher geography
+
+-   publish data on tests, cases, deaths, healthcare metrics and vaccinations.
+
+-   present information as a series of summaries, charts (epidemic curves) and tables
+
+-   make small area data available via an interactive map which includes a slider to view trends over time.
+
+-   update the R number and growth rate weekly.
+
+-   provide localisation services via postcode searching, and map zooming.
+
+-   provide easy read reports daily for every area for which we have data
+
+-   provide extensive access to all the data via downloads, API calls
+
+-   
 
 It now serves in excess of 800,000 unique users a day, with a peak of 80,000 view a minute in the period. 5 Tb of data is downloaded daily. l
 
@@ -24,26 +42,23 @@ library(patchwork)
 library(changepoint)
 library(ggfortify)
 
-uses <- higaR::get_ga_list()
+stats <- read_rds("db_ga.rds")
 
-id <- "222273358"
-
-stats <- get_ki_analytics(ids = id, first = "2020-08-01")
-
-cp <- changepoint::cpt.mean(stats$users, method = "BinSeg", Q = 5) %>%
-  rownames(stats$date)
-
-autoplot(cp)
-
-stats[cp@cpts, ]
+# cp <- changepoint::cpt.mean(stats$users, method = "BinSeg", Q = 5) %>%
+#   rownames(stats$date)
+# 
+# autoplot(cp)
+# 
+# stats[cp@cpts, ]
 
 stats %>%
   arrange(desc(date)) %>%
   slice(-1) %>%
-  ggplot() +
-  geom_line(aes(date, users), colour = "red")  +
-  geom_line(aes(date, newUsers), colour = "blue" ) +
-  geom_vline(xintercept = as.Date("2020-10-13"), lty = "dotted") +
+  ggplot(aes(date, users), colour = "red") +
+  geom_line()  +
+  geom_vline(xintercept = as.POSIXct("2020-10-13"), lty = "dotted") +
+  geom_vline(xintercept = as.POSIXct("2020-08-04"), lty = "dotted") +
+  #geom_line(aes(date, newUsers), colour = "blue" ) +
   #geom_line(aes(date, pageviews)) +
   scale_y_log10(labels = scales::comma) +
   labs(y = "Volume") 
@@ -87,7 +102,7 @@ timevis::timevis(
              end =   c("2021-01-29 09:00",  NA, "2021-01-29 10:30", "2021-01-29 13:30", NA, "2021-01-29 15:45", NA,  NA, NA, NA),
              options = list(editable = TRUE))
 ) %>%
-  setGroups(data.frame(id = 1:5, content = c("Data creation", "Data processing", "Pipeline", "Deployment", "QA")))
+  setGroups(data.frame(id = 1:5, content = c("Group 1", "Group 2", "Group 3", "Group 4", "Group 5")))
 
 ```
 

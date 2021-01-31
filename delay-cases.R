@@ -10,6 +10,7 @@ urls1 <- c(url, urls)
 
 jsons <- map_dfr(urls1, fromJSON)
 
+
 str(jsons)
 setNames(jsons, "dates" )
 data <- map_dfr(jsons, "body")

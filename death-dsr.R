@@ -7,8 +7,14 @@ library(PHEindicatormethods)
 devtools::install_github("daudi/phutils")
 library(phutils)
 
+
+url <- "https://api.coronavirus.data.gov.uk/v2/data?areaType=utla&metric=newDeaths28DaysByDeathDateAgeDemographics&format="
 ## import age-specific death data
-la_deaths <- jsonlite::fromJSON("https://coronavirus.data.gov.uk/api/v1/data?filters=areaType=region&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newDeaths28DaysByDeathDateAgeDemographics%22:%22newDeaths28DaysByDeathDateAgeDemographics%22%7D&format=json", simplifyDataFrame = TRUE)
+
+la_deaths_1 <- fread(url)
+
+
+la_deaths <- jsonlite::fromJSON("https://coronavirus.data.gov.uk/api/v1/data?filters=areaType=&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newDeaths28DaysByDeathDateAgeDemographics%22:%22newDeaths28DaysByDeathDateAgeDemographics%22%7D&format=json", simplifyDataFrame = TRUE)
 
 la_deaths <- la_deaths$data %>%
   unnest("newDeaths28DaysByDeathDateAgeDemographics")
@@ -120,7 +126,7 @@ la_final <- la_deaths_c %>%
   select(date, areaName, ageband = age, rollingSum, areaType, Code) 
 
 la_final %>%
-  tail(10)
+  count(areaType)
 
 la_final <- la_final %>%
   arrange(date, ageband) %>%
@@ -186,6 +192,17 @@ plot1 +
   theme(panel.background = element_blank(), 
         strip.text = element_text(size = 6))
 
+
+la_dsr_la <- la_final %>%
+  filter(areaType == "utla") %>%
+  #filter(str_detect(areaName, "Bark"))
+  #count(Geography1) %>%
+  # filter(n != 19) %>%
+  group_by(areaName, date) %>%
+  #select(-Geography1) %>%
+  #distinct() %>%
+  #filter(areaName == "Barking and Dagenham", date == "2020-03-01") %>% 
+  phe_dsr(rollingSum, pop_p)
 
 #######
 
