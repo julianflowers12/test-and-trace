@@ -4,17 +4,18 @@ library(tidyverse)
 library(readxl)
 library(janitor)
 
+d <- "https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fbirthsdeathsandmarriages%2fdeaths%2fdatasets%2fnumberofdeathsincarehomesnotifiedtothecarequalitycommissionengland%2f2020/20210110officialsensitivecoviddeathnotificationv2.xlsx"
 
-
-cqc <- "https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fbirthsdeathsandmarriages%2fdeaths%2fdatasets%2fnumberofdeathsincarehomesnotifiedtothecarequalitycommissionengland%2f2020/20210104officialsensitivecoviddeathnotification.xlsx"
+#cqc <- "https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fbirthsdeathsandmarriages%2fdeaths%2fdatasets%2fnumberofdeathsincarehomesnotifiedtothecarequalitycommissionengland%2f2020/20210104officialsensitivecoviddeathnotification.xlsx"
 
 destfile <- tempfile()
 
-curl::curl_download(cqc, destfile = destfile)
+curl::curl_download(d, destfile = destfile)
 
 cqc_data <- excel_sheets(destfile)
 
-cqc_data
+cqc_data %>%
+  excel_sheets()
 
 info <- read_excel(destfile, sheet = 2, skip = 2) %>%
   clean_names() %>%
@@ -66,21 +67,30 @@ t3 <- read_excel(destfile, sheet = 5, skip = 2) %>%
 t3 %>%
   count(cause)
 
-t3 %>%
+t4 <- t3 %>%
   bind_rows(t2) %>%
-  select(-info) %>%
+  select(-info) 
+
+t4 %>%
+  ggplot(aes(date, count, fill = cause)) +
+  geom_col(position = "fill")
+
+t4 %>%
   #dim()
   #filter(location == "England") %>%
   pivot_wider(names_from = "cause", values_from = "count", values_fn = list) %>% 
   unnest() %>%
-  slice(1:ncol(.)-263) %>%
-  mutate(covid_percent = covid/(covid + `all cause`)) %>%
-  #unnest()
-  #reactable::reactable(filterable = TRUE, sortable = TRUE)
-  ggplot(aes(date, covid_percent)) +
-  geom_col() +
-  geom_smooth(se = FALSE)
-
+  #slice(1:ncol(.)-263) %>%
+  mutate(non_covid = `all cause` - covid) %>%
+  select(-`all cause`) %>%
+  mutate(rmc = zoo::rollmean(covid,  k = 7, na.pad = TRUE, align = "center"), 
+         rmnc = zoo::rollmean(non_covid,  k = 7, na.pad = TRUE, align = "center")) %>%
+  select(-c(3:4)) %>%
+  pivot_longer(names_to = "metric", values_to = "val", cols = 3:4) %>%
+  ggplot(aes(date, val, fill = metric)) +
+  geom_col(position = "fill") +
+  labs(y = "proportion registered deaths")
+  
 
 
 

@@ -8,5 +8,6 @@ uk_data %>%
          est_cases = newCasesBySpecimenDateRollingRate * uk_pop / 100000, 
          est_pop = newCasesBySpecimenDateRollingSum / newCasesBySpecimenDateRollingRate * 100000, 
          newCasesBySpecimenDateRollingSum - est_cases) %>%
-  tail()
+  View()
+
  

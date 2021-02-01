@@ -1,0 +1,56 @@
+---
+title: "Update schedule"
+author: "Julian Flowers"
+date: "12/01/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
++---------------+----------------------------------------------------+-------------------------------------------+--------------------+
+| Theme         | Daily                                              | Weekly                                    | Ad hoc             |
++===============+====================================================+===========================================+====================+
+| Cases         | Cases by publish date                              |                                           |                    |
+|               |                                                    |                                           |                    |
+|               | Cases by specimen data                             |                                           |                    |
+|               |                                                    |                                           |                    |
+|               | 7 day case counts                                  |                                           |                    |
+|               |                                                    |                                           |                    |
+|               | 7 day case rates                                   |                                           |                    |
+|               |                                                    |                                           |                    |
+|               | Daily change in cases (England only)               |                                           |                    |
+|               |                                                    |                                           |                    |
+|               | 7 day MSOA counts and rates (England only)         |                                           |                    |
+|               |                                                    |                                           |                    |
+|               | 7 day change in counts                             |                                           |                    |
++---------------+----------------------------------------------------+-------------------------------------------+--------------------+
+| Tests         | Daily tests by pillar                              | Testing capacity                          |                    |
+|               |                                                    |                                           |                    |
+|               | 7 day people tested (England and subnational only) |                                           |                    |
+|               |                                                    |                                           |                    |
+|               | 7 day positivity (England and subnational only)    |                                           |                    |
++---------------+----------------------------------------------------+-------------------------------------------+--------------------+
+| Healthcare    | Admissions (Nation and region)                     | Admissions (trusts) (Thursday)            |                    |
+|               |                                                    |                                           |                    |
+|               | Hospitalised patients (Nation and region)          | Hospitalised patients (trusts)            |                    |
+|               |                                                    |                                           |                    |
+|               | Ventilated patients (nation and region)            | Ventilated patients (trusts)              |                    |
++---------------+----------------------------------------------------+-------------------------------------------+--------------------+
+| Deaths        | 28 day Deaths by publish date                      | ONS deaths by registration date (Tuesday) |                    |
+|               |                                                    |                                           |                    |
+|               | 28 day Deaths by death date                        |                                           |                    |
++---------------+----------------------------------------------------+-------------------------------------------+--------------------+
+| Vaccinations  | 1st doses                                          | 1st doses (Thursday)                      |                    |
+|               |                                                    |                                           |                    |
+|               | 2nd doses                                          | 2nd doses                                 |                    |
++---------------+----------------------------------------------------+-------------------------------------------+--------------------+
+| Miscellaneous |                                                    |                                           | R Number (Fridays) |
+|               |                                                    |                                           |                    |
+|               |                                                    |                                           | Growth rate        |
+|               |                                                    |                                           |                    |
+|               |                                                    |                                           | Tiers              |
++---------------+----------------------------------------------------+-------------------------------------------+--------------------+
+|               |                                                    |                                           |                    |
++---------------+----------------------------------------------------+-------------------------------------------+--------------------+

@@ -24,18 +24,20 @@ library(patchwork)
 library(changepoint)
 library(ggfortify)
 
-uses <- higaR::get_ga_list()
+# uses <- higaR::get_ga_list()
+# 
+# id <- "222273358"
+# 
+# stats <- get_ki_analytics(ids = id, first = "2020-08-01")
+# 
+# cp <- changepoint::cpt.mean(stats$users, method = "BinSeg", Q = 5) %>%
+#   rownames(stats$date)
+# 
+# autoplot(cp)
+# 
+# stats[cp@cpts, ]
 
-id <- "222273358"
-
-stats <- get_ki_analytics(ids = id, first = "2020-08-01")
-
-cp <- changepoint::cpt.mean(stats$users, method = "BinSeg", Q = 5) %>%
-  rownames(stats$date)
-
-autoplot(cp)
-
-stats[cp@cpts, ]
+stats <- read_rds("db_ga.rds")
 
 stats %>%
   arrange(desc(date)) %>%
@@ -180,6 +182,10 @@ Insert organogram
 ## Governance
 
 ## Risks and resilience
+
+### Transition
+
+We assume the dashboard will transition into NIHP - it is clearly a COVID
 
 :   
 

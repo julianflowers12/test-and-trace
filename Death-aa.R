@@ -24,12 +24,14 @@ ldw <- latest_data %>%
 ## plot latest week as scatter plot
 
 ldw_latest <- ldw %>%
-  filter(weekno == 50) %>%
+  filter(weekno == 52) %>%
   pivot_wider(names_from = "metric", values_from = "weeksum") 
 
 ldw_latest %>%
   ggscatmat(columns = 3:5) +
-  geom_smooth(method = "lm", se = FALSE)
+  geom_smooth(method = "lm", se = FALSE) + 
+  #geom_abline(slope = 1, intercept = 0) +
+  ggtitle("Correlation between COVID deaths and DC COVID deaths")
 
 ## model
 library(ggfortify)
