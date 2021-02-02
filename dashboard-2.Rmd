@@ -21,23 +21,56 @@ options(scipen = 999)
 
 ```
 
-# Background
 
-PHE has published daily COVID pandemic indicators since early March. The coronavirus dashboard (<https://coronavirus.data.gov.uk>) is the public facing site for daily publication of official UK figures on the COVID pandemic. It has undergone 3 major redesigns since April to accommodate increasing volumes of data, reflect the changes in the pandemic, and improve transparency, navigation, and clarity in response to user research findings.
+# Assumptions
+
+1. **Daily** public reporting of key metrics of the pandemic will still be required for at least the next 6 months
+2. Requests for new data and increased granularity will continue
+3. Weekend reporting will continue
+4. Volumes of data to be processed to generate the dashboard will continue to grow
+5. The daily volume of data published will continue to grow
+6. The requirement for data release at 4 pm will continue
+7. There will be a contuinued need for for modifications to site design as new data is added, and to respond to user requirements to improve the user experience
+8. The general public will remain the predominant user group
+9. The dashboard as a COVID asset will transition to NIHP as part of PHE transition
+10. The code base, infrastructre and architecture could be reused or adapted to publish a wider range of data as required.
+11. Continued delivery of the dashboard will need a guaranteed appropriate level of staffing and skills to
+    + provide 7 day cover
+    + enable hard-pressed staff to be able to take leave and manage reasonable working hours 
+    + maintain and develop the front end
+    + maintain and develop the back end
+    + maintain and develop the infrastrucutre 
+    + manage senior stakeholder requests
+    + respond to requests from the media, PQs, FOIs, manage the inbox and 'what's new' pages
+    + document decisions, functionality
+12. Given the imminent departure of the dashboard lead, a suitable senior replacement is found to act as Senior Product Owner
+13. Line management arrangements for recent recruits are resolved
+14. As a government digital service the dashboard follows GDS principles, statutory accessibility criteria and complies with the Statistics Code of Practice and requirements of the the Office of Statistics Regulation
+    
+
+# Current position of the dashboard
+    
+#€ Background
+
+Although PHE has published daily COVID pandemic indicators since early March, the coronavirus dashboard (<https://coronavirus.data.gov.uk>) has been the public facing site for daily publication of official UK figures on the COVID pandemic since April 2020. The dashboard has undergone 3 major redesigns since April to accommodate increasing volumes of data, reflect the changes in the pandemic, and improve transparency, navigation, and clarity in response to user research findings.
 
 Daily release and development is now a huge team effort requiring collaboration across several teams in PHE, NHS England, DHSC (Test and Trace), Cabinet Office, SofS Office, and the DAs.
 
 The bulk of the development and daily effort is undertaken in PHE by a team of data scientists and analysts, digital staff, and developers. Most of the analytical resource is sourced from Health Improvement teams.
 
-It relies heavily on NHS England infrastructure - data is stored and processed in the NHS Foundry system (provided by Palantir) and the major infrastructure is hosted on the NHE England Azure tenant.
+It relies heavily on NHS England infrastructure - data is stored and processed in the NHS Foundry system (provided by Palantir) flowing from the NHS Covid Datastore and the major infrastructure is hosted on the NHE England Azure tenant.[check with Matt Fox]
 
-### Delivery 
+## Current daily inputs and outputs {#current}
 
-To deliver the dashboard we:
+Every day
 
--   collate data from over 20 sources
+-   We collate data from over 20 sources
 
--   process over 500m rows of data daily to generate 100m data points which populate the website front end with \> 200 metrics for 6791 MSOAs and 700 higher geographical areas[^1]
+-   processes over 500m rows of data daily to generate 100m data points which populate the website front end with > 200 metrics for 6791 MSOAs and 700 higher geographical areas[^1]
+
+-   calculate the UK values for the 15 headline metrics 
+
+-   calculate rates, 7-day rates and sums, positivity
 
 -   publish data on tests, cases, deaths, healthcare metrics and vaccinations.
 
@@ -67,9 +100,9 @@ We also produce a range of data and outputs for comms, management and internal u
 
 -   Ad hoc analysis for internal queries, media requests, PQs and select committee report.
 
-### Users {#users}
+## Users {#users}
 
-95% of our users are members of the general public but the service is widely used in central government including PHE, T&T and JBC; local government; the NHS; national and local media; academics, and international reporting agencies.
+95% of dashboard users are members of the general public but the service is extensively used in central government including PHE, T&T and JBC; local government; the NHS; national and local media; academics, and international reporting agencies.
 
 The site now averages over 800,000 users a day - 8 x the users in July and 80 x the users in April. 20,000 easy read documents are downloaded daily. There are over 60 million API calls (hits) every day.
 
@@ -87,24 +120,95 @@ stats %>%
   geom_smooth(se = FALSE) +
   geom_vline(xintercept = as.POSIXct("2020-10-13"), lty = "dotted") +
   geom_vline(xintercept = as.POSIXct("2020-08-04"), lty = "dotted") +
-  geom_vline(xintercept = as.POSIXct("2020-12-24"), lty = "dotted") +
+  geom_vline(xintercept = as.POSIXct("2020-12-24"), lty = "dashed") +
   #geom_line(aes(date, newUsers), colour = "blue" ) +
   #geom_line(aes(date, pageviews)) +
   scale_y_log10(labels = scales::comma) +
   labs(y = "Daily users", 
        title = "Growth in daily users since July 2020", 
-       subtitle = "Dotted lines = dashboard iterations") 
+       subtitle = "Dotted lines = dashboard iterations\nDashed line = daily vaccination data added" , 
+       caption = "Source: Google analytics (accessed 29th Jan 2021)") 
  
 
 ```
 
-## How it works
 
-### Daily process 
+## Dashboard staffing and teams
+
+The team of people working on the dashboard has grown rapidly and there are now five teams involved. There are a few people in the team who have worked continually on the dashboard since the summer, and two or three since March. The lech lead/ lead developer has worked on the project since March *without* a day off.
+
+### Five teams
+
+![](Dashboard.png)
+
+The current staffing is x wte and is a mixture of fixed-term appointees on incident funding, volunteers/ loanees  - largely from Health Improvement and FCD, and contractors.
+
+-   **Dev team** - 3 wte (1 FTE tech lead/ lead developer, 1 FTE contractor, 1 FTE apprentice developer)
+
+    -   Front and back end development - API/ web pages/ databases
+
+    -   Liaison with Microsoft team who manage Azure infrastructure
+
+-   **Data team** - 6.2 wte (3 WTE G6, 2 WTE G7, 1.2 wte SEO)
+
+    -   Daily process
+
+    -   Daily deployment (G6s)
+
+    -   Creating page layouts/ adding metadata
+
+    -   Data design
+
+    -   Negotiation on data additions
+
+    -   Data for daily press conferences
+
+    -   Pre-release data
+
+    -   Ad hoc analysis
+
+-   **Pipeline team**  - 2 wte
+
+    -   Data flows and data management
+    -   Work in the Foundry system and Palantir engineers
+    -   Liaise with data and dev team on creating metrics, data flows
+    -   Data onboarding
+
+-   **Digital team** - 4 wte (Senior Product Manager, Delivery manager, 1 wte user researcher, content designer, 0.5 wte interaction designer...)
+
+    -   Work across all teams on product delivery
+    
+    -   Interaction with senior stakeholders
+    
+    -   User research
+    
+    -   User interaction design
+
+    -   Content design
+
+    -   Agile management
+
+-   **Management team** (1 wte)
+
+    -   Work closely with Senior Product Manager and heads of data to determine feasibility and priority of requests
+
+    -   Establish governance arrangements
+
+    -   Work with senior stakeholders
+
+    -   Procure resources
+
+    -   Set priorities and direction
+
+    -   Respond to users and requests
+
+## The daily process 
 
 There are a series of daily steps.
 
--   **Metric creation and data collection**
+- Metric calculaltion
+
+- Data ingestion
 
     -   Morning process
 
@@ -114,9 +218,6 @@ There are a series of daily steps.
 
 -   **Data deployment**
 
-```{=html}
-<!-- -->
-```
 -   Data is ingested from a wide range of data sources daily including PHE, NSHE, Test and Trace, Scottish, Welsh and Irish govt and public health agencies into the NHS Foundry System
 
 -   Data is a mix of large record datasets, spreadsheets and API calls
@@ -167,7 +268,11 @@ timevis::timevis(
 
 ```
 
-### Data delays
+## Reaching limits
+
+
+
+Data delays
 
 Delays in data release exemplify the challenges of daily publication and the complexity of the process, and highlight where we need to build resilience. We have been collecting data on deployment times since the beginning of August (see figure).
 
