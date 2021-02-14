@@ -8,13 +8,13 @@ devtools::install_github("daudi/phutils")
 library(phutils)
 
 
-url <- "https://api.coronavirus.data.gov.uk/v2/data?areaType=utla&metric=newDeaths28DaysByDeathDateAgeDemographics&format="
+url <- "https://api.coronavirus.data.gov.uk/v2/data?areaType=utla&metric=newDeaths28DaysByDeathDateAgeDemographics&format=csv"
 ## import age-specific death data
 
 la_deaths_1 <- fread(url)
 
 
-la_deaths <- jsonlite::fromJSON("https://coronavirus.data.gov.uk/api/v1/data?filters=areaType=&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newDeaths28DaysByDeathDateAgeDemographics%22:%22newDeaths28DaysByDeathDateAgeDemographics%22%7D&format=json", simplifyDataFrame = TRUE)
+la_deaths <- jsonlite::fromJSON("https://coronavirus.data.gov.uk/api/v1/data?filters=areaType=region&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newDeaths28DaysByDeathDateAgeDemographics%22:%22newDeaths28DaysByDeathDateAgeDemographics%22%7D&format=json", simplifyDataFrame = TRUE)
 
 la_deaths <- la_deaths$data %>%
   unnest("newDeaths28DaysByDeathDateAgeDemographics")
@@ -257,7 +257,7 @@ area_list <- pull(la_dsr_utla, "areaName") %>%
 area_list
 
 
-peaks <- map(area_list[73], function(x) modelled_peak(df = la_dsr_utla, x))
+peaks <- map(area_list[9], function(x) modelled_peak(df = la_dsr_utla, x))
 peaks[[1]]$plot +
   scale_x_date(breaks = "month")
 

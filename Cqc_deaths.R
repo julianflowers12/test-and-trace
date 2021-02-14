@@ -14,8 +14,6 @@ curl::curl_download(d, destfile = destfile)
 
 cqc_data <- excel_sheets(destfile)
 
-cqc_data %>%
-  excel_sheets()
 
 info <- read_excel(destfile, sheet = 2, skip = 2) %>%
   clean_names() %>%

@@ -3,6 +3,7 @@
 library(tidyverse)
 library(readxl)
 library(tidytext)
+here::here()
 
 hosp <- read_csv("https://coronavirus.data.gov.uk/api/v2/data?areaType=nhsTrust&metric=hospitalCases&metric=newAdmissions&metric=covidOccupiedMVBeds&format=csv")
 
@@ -21,6 +22,38 @@ cpop <- cpop %>%
   filter(CatchmentYear == 2018) %>%
   group_by(TrustCode) %>%
   summarise(sumpop = sum(Catchment))
+
+
+hosp %>%
+  left_join(cpop, by = c("areaCode" = "TrustCode")) %>%
+  pivot_longer(names_to = "metric", values_to = "values", cols = 5:7) %>%
+  group_by(metric) %>%
+  mutate(seven_day = zoo::rollsum(values, k = 7, align = "center", na.pad = TRUE), 
+         rates = seven_day / sumpop *100000) %>%
+  write_rds("hosp_rates.rds")
+
+
+hosp_rates <- read_rds("hosp_rates.rds")
+
+hosp_rates %>%
+  group_by(metric, areaName) %>%
+  filter(date == max(date), 
+         !is.na(rates)) %>%
+  ungroup() %>%
+  select(-c(values, seven_day)) %>%
+  pivot_wider(names_from = "metric", values_from = "rates") %>%
+  ggplot(aes(reorder(areaName, -hospitalCases), hospitalCases)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  coord_flip()
+  
+
+arrange(areaName, desc(date))
+
+hosp_rates %>%
+  ggplot(aes(date, areaName, fill = rates)) +
+  geom_tile() + 
+  facet_wrap(~ metric, nrow = 1, scales = "free")
 
 ## from here <https://app.box.com/s/qh8gzpzeo1firv1ezfxx2e6c4tgtrudl/file/646073527000>
 

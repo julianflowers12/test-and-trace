@@ -22,14 +22,23 @@ When someone dies:
 -   The death is notified
 -   The death is registered
 -   A death certificate is issued. This is completed by the doctors who
-    cared for the patient in their final illness
--   Doctors can enter up to 8 causes or contributory causes on the death
+    cared for the patient in their final illness and reflects the best
+    medical opinion of that doctor about the causes and contributory
+    factors leading to that deaths
+-   Doctors can enter many causes or contributory factors on the death
     certificate
+-   Many hospitals now have specially trained doctors known as medical
+    examiners, whose job is to ensure the accuracy of death certificates
+    and liaise with the coroner under certain circumstances
+-   The vast majority of deaths are not referred to coroner
 -   Deaths are registered by the Office of National Statistics (ONS) who
     review the causes of death on the certificate and assign one to an
     underlying cause of death (UCOD). This is use to calculate death
-    statistics by causes of death and uses an automated system
+    statistics by causes of death and uses an automated system. COVID
+    deaths are determined by a rubric developed by the World Health
+    Organisation (WHO)
 -   The fact of death is notified to the NHS Central Register (NHSCR)
+    and the Personal Demographic Service (PDS)
 
 <https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/916035/RA_Technical_Summary_-_PHE_Data_Series_COVID_19_Deaths_20200812.pdf>
 
@@ -57,8 +66,8 @@ Many people want to know how many people die **of** COVID but there is
 no simple way of counting how many deaths are attributable to
 SARS-CoV-2. There are a number of approaches:
 
-1.  Deaths in people who are COVID positive - how many people with COVID
-    die? This is used for daily reporting of deaths.
+1.  Deaths in people who are SARS-CoV-2 positive - how many people with
+    COVID die? This is used for daily reporting of deaths.
 
     -   PHE calculate how many people die within 28 days of a COVID
         positive test on a daily basis
@@ -78,11 +87,15 @@ SARS-CoV-2. There are a number of approaches:
 
 ## Hospital deaths
 
+The NHS publish daily figures deaths in hospital of who are SARS-CoV-2
+positive. Hospital deaths represent about 40% of all deaths.
+
 ```{r, echo=FALSE, message=FALSE}
 
 ## identify latest daily spreadsheet
 library(myScrapers)
 library(readxl)
+options(scipen = 999)
 
 ## source page
 url <- "https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-daily-deaths/" 
@@ -105,24 +118,33 @@ latest <- read_excel(destfile, sheet = 3, skip = 15)
 
 latest_long <- latest %>%
   janitor::remove_empty() %>%
+  janitor::clean_names() %>%
+  group_by(nhs_england_region) %>%
   pivot_longer(names_to = "date", values_to = "deaths", cols = 2:ncol(.)) %>%
-  mutate(date = janitor::excel_numeric_to_date(as.numeric(date))) %>%
-  arrange(desc(date)) 
+  slice(-1) %>%
+  mutate(date = str_remove(date, "x"), 
+         date = janitor::excel_numeric_to_date(as.numeric(date))) %>%
+  arrange(desc(date)) %>%
+  mutate(seven_day = zoo::rollmean(deaths, 7, na.pad = TRUE))
 
 latest_long %>%
-  ggplot(aes(date, deaths)) +
-  geom_area() +
-  geom_smooth(se = FALSE, method = "loess", span = 0.2, colour = "red", lwd = 1) +
-  #ylim(c(0, 800)) +
-  facet_wrap(~`NHS England Region`, scales = "free") 
+  ggplot(aes(date, seven_day)) +
+  geom_line() +
+  #geom_smooth(se = FALSE, method = "gam", span = 0.2, colour = "red", lwd = 1) +
+  ylim(c(0, 800)) +
+  facet_wrap(~nhs_england_region, scales = "free") 
 ```
+
+Hospital days in the second wave peaked at 800 per day in England and
+the second peak has been as high as the first peak but is more
+protracted
 
 ## Reporting date vs death date
 
 ```{r}
 library(patchwork)
 
-deaths <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=cumDeaths28DaysByPublishDate&metric=cumDeaths28DaysByDeathDate&metric=newDeaths28DaysByDeathDate&metric=newDeaths28DaysByPublishDate&metric=newDeaths60DaysByDeathDate&format=csv")
+deaths <- read_csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=cumDeaths28DaysByPublishDate&metric=cumDeaths28DaysByDeathDate&metric=newDeaths28DaysByDeathDate&metric=newDeaths28DaysByPublishDate&metric=newDeaths60DaysByDeathDate&metric=newDailyNsoDeathsByDeathDate&format=csv")
 
 new <- deaths %>%
   pivot_longer(names_to = "metric", values_to = "deaths", cols = 5:ncol(.)) %>%
@@ -144,6 +166,35 @@ cum <- deaths %>%
 
 new_p / cum
 
+```
+
+### Day of the week
+
+```{r}
+dow <- deaths %>%
+  select(date, newDeaths28DaysByDeathDate, newDeaths28DaysByPublishDate) %>%
+  pivot_longer(names_to = "metric", 
+               values_to = "values", cols = 2:3) %>%
+  mutate(dow = lubridate::wday(date, label = TRUE)) %>%
+  ggplot(aes(date, values, colour = dow)) +
+  geom_line(aes(group = dow)) +
+  facet_grid(~metric)
+  
+  
+dow
+  
+  
+deaths %>%
+  select(date, newDeaths28DaysByDeathDate, newDeaths28DaysByPublishDate) %>%
+  pivot_longer(names_to = "metric", 
+               values_to = "values", cols = 2:3) %>%
+  mutate(dow = lubridate::wday(date, label = TRUE), 
+         peak = ifelse(date <= "2020-08-31", "peak1", "peak2")) %>%
+  group_by(dow, metric, peak) %>%
+  summarise(sum = sum(values, na.rm = TRUE)) %>%
+  pivot_wider(names_from = c("metric", "peak"), values_from = "sum") %>%
+  reactable::reactable()
+  
 ```
 
 ## Excess deaths
@@ -169,23 +220,101 @@ od %>%
 ```
 
 ```{r}
+d <- "https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fbirthsdeathsandmarriages%2fdeaths%2fdatasets%2fnumberofdeathsincarehomesnotifiedtothecarequalitycommissionengland%2f2020/20210110officialsensitivecoviddeathnotificationv2.xlsx"
 
-source("Cqc_deaths.R")
+#cqc <- "https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fbirthsdeathsandmarriages%2fdeaths%2fdatasets%2fnumberofdeathsincarehomesnotifiedtothecarequalitycommissionengland%2f2020/20210104officialsensitivecoviddeathnotification.xlsx"
+
+destfile <- tempfile()
+
+curl::curl_download(d, destfile = destfile)
+
+cqc_data <- excel_sheets(destfile)
+
+t1 <- read_excel(destfile, sheet = 3, skip = 2) %>%
+  janitor::clean_names() %>%
+  mutate(date_of_notification = janitor::excel_numeric_to_date(as.numeric(date_of_notification)),
+         info = cqc_data[3])
+
+t2 <- read_excel(destfile, sheet = 4, skip = 2) %>%
+  janitor::clean_names() %>%
+  pivot_longer(names_to = "date", values_to = "count", cols = 2:ncol(.)) %>%
+  mutate(date = str_remove(date, "x"), 
+         date = janitor::excel_numeric_to_date(as.numeric(date)),
+         info = cqc_data[4], 
+         cause = "covid") %>%
+  rename(location = x1) 
+
+t2 %>%
+  filter(location == "England") %>%
+  ggplot(aes(date, count)) +
+  geom_line() +
+  geom_smooth(se = FALSE)
+
+
+
+t3 <- read_excel(destfile, sheet = 5, skip = 2) %>%
+  janitor::clean_names() %>%
+  pivot_longer(names_to = "date", values_to = "count", cols = 2:ncol(.)) %>%
+  mutate(date = str_remove(date, "x"), 
+         date = janitor::excel_numeric_to_date(as.numeric(date)),
+         info = cqc_data[5], 
+         cause = "all cause") %>%
+  rename(location = x1)
+
+t3 %>%
+  count(cause)
+
+t4 <- t3 %>%
+  bind_rows(t2) %>%
+  select(-info) 
 
 t4 %>%
-  ggplot(aes(date, covid_percent)) +
-  geom_col() +
-  labs(title = "% of CQC reported care home deaths attributed to COVID")
+  ggplot(aes(date, count, fill = cause)) +
+  geom_col(position = "fill")
+
+t4 %>%
+  #dim()
+  #filter(location == "England") %>%
+  pivot_wider(names_from = "cause", values_from = "count", values_fn = list) %>% 
+  unnest() %>%
+  #slice(1:ncol(.)-263) %>%
+  mutate(non_covid = `all cause` - covid) %>%
+  select(-`all cause`) %>%
+  mutate(rmc = zoo::rollmean(covid,  k = 7, na.pad = TRUE, align = "center"), 
+         rmnc = zoo::rollmean(non_covid,  k = 7, na.pad = TRUE, align = "center")) %>%
+  select(-c(3:4)) %>%
+  pivot_longer(names_to = "metric", values_to = "val", cols = 3:4) %>%
+  ggplot(aes(date, val, fill = metric)) +
+  geom_col(position = "fill") +
+  labs(y = "proportion registered deaths")
+  
 
 ```
 
 ```{r relationships}
 
 latest_long_eng <- latest_long %>%
-  filter(`NHS England Region` == "England")
+  filter(nhs_england_region == "England")
 
 d1 <- deaths %>%
-  select(date, newDeaths28DaysByDeathDate, newDeaths60DaysByDeathDate, newDeaths28DaysByPublishDate)
+  select(date, newDeaths28DaysByDeathDate, newDeaths60DaysByDeathDate, newDailyNsoDeathsByDeathDate)
+
+d2 <- deaths %>%
+  select(newDeaths28DaysByDeathDate, newDeaths60DaysByDeathDate, newDeaths28DaysByPublishDate, newDailyNsoDeathsByDeathDate)
+
+
+model <- 
+  lm(newDailyNsoDeathsByDeathDate ~ ., data = d2)
+
+model %>%
+  broom::augment() %>%
+  select(newDailyNsoDeathsByDeathDate, .fitted, .resid)
+
+
+d1 %>%
+  pivot_longer(names_to = "metric", values_to = "values", cols = 2:4) %>%
+  ggplot(aes(date, values, color = metric)) +
+  geom_line()
 
 combined <- t4 %>%
   filter(location == "England") %>%
@@ -234,7 +363,7 @@ combined %>%
   filter(id == 1) %>%
   ungroup() %>%
   select(newDeaths28DaysByDeathDate, newDeaths60DaysByDeathDate, deaths, newOnsDeathsByRegistrationDate, newDeaths28DaysByPublishDate) %>%
-  lm(newOnsDeathsByRegistrationDate ~ ., .) -> death_model
+  lm(dailyNsoDeathsByDeathDate ~ ., .) -> death_model
 
 death_model %>% 
   broom::glance() 
