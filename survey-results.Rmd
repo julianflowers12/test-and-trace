@@ -1,0 +1,367 @@
+---
+title: "Survey results"
+author: "Julian Flowers"
+date: "21/02/2021"
+output: 
+    html_document:
+      toc: yes
+      toc_float: yes
+      code_folding: hide 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+Analysis of > 13000 free text responses to the question in Survey 5 
+
+> if_you_could_improve_one_thing_about_the_website_what_would_it_be?
+
+## Method
+
+* responses extracted from spreadsheet
+* convert responses to document feature matrix (weighted by tf-idf - term frequency inverse document frequency)
+* reduce dimensionality and cluster
+* label clusters
+* hold out unclustered data
+* group categories into broad themes
+* build model to predict theme labels in clustered data
+* apply model to unclustered data
+* recombine
+* visualise results
+
+
+```{r load libraries}
+
+
+library(tidyverse)
+library(janitor)
+library(myScrapers)
+library(quanteda)
+library(mclust)
+library(parallel)
+library(Rtsne)
+library(dbscan)
+library(quanteda.textmodels)
+
+quanteda::quanteda_options(threads = 8)
+
+```
+
+```{r load-data, results='hide'}
+c_survey <- read_csv("~/Documents/Covid-19 survey v0.05 (Responses) - Form Responses 1.csv") %>%
+  clean_names()
+
+free_text_1 <- c_survey %>%
+  select(starts_with("if_you_could")) %>%
+  filter(!is.na(if_you_could_improve_one_thing_about_the_website_what_would_it_be)) %>%
+  mutate(pmid  = row_number(), 
+         absText = if_you_could_improve_one_thing_about_the_website_what_would_it_be,
+         title = pmid
+  )
+
+dim(free_text_1)
+
+c_2 <- create_abstract_corpus(free_text_1)
+
+c_2
+
+```
+
+
+## Results{.tabset .tabset-fade .tabset-pills}
+
+### Create corpus
+
+```{r corpus}
+#create_abstract_cluster
+
+ 
+## remove numbers 
+corpus <- c_2$corpus %>% filter(!is.na(pmid), str_detect(word, "[[:alpha:]]" ))
+
+## extract ids
+pmid_1 <- pull(corpus, "pmid") %>% unique() %>% enframe()
+
+free_text_1 <- free_text_1 %>%
+  filter(pmid %in% pmid_1$value)
+
+
+## reduce dimension
+#tsne <- corpus %>% cast_sparse(pmid, word, tf_idf) %>% as.matrix() %>% 
+  #Rtsne(check_duplicates = FALSE, perplexity = 50)
+
+#tsne %>% saveRDS("tsne.rds")
+```
+
+
+### Cluster and label
+
+```{r}
+
+
+## load 
+tsn <- read_rds("tsne.rds")
+
+## dbscan method
+
+set.seed(123)
+
+## create cluster
+clust <- hdbscan(tsn$Y, minPts = 60)
+
+pairs(tsn$Y)
+
+## combine datasets
+clustering <- data.frame(cbind(pmid = pmid_1, tsn$Y, cluster = clust$cluster)) %>% 
+  mutate(V2 = as.numeric(as.character(X1)), V3 = as.numeric(as.character(X2)))
+
+clustering <- clustering %>% mutate(clustered = ifelse(cluster == 0, "not-clustered", "clustered"))
+
+## create labels
+labels <- create_cluster_labels(corpus, clustering, top_n = 6)
+```
+
+### Classify
+
+```{r}
+
+## classify statements
+classification <- labels$results %>%
+  left_join(free_text_1, by = c("pmid.value" = "pmid"))
+
+
+# classification %>%
+#   count(clus_names, sort = TRUE) 
+
+## recode categories
+categorised <- classification %>%
+  mutate(broad_cat = case_when(str_detect(clus_names, "mobile|iPad") ~ "mobile", 
+                               str_detect(clus_names, "vaccin") ~ "vaccination-data", 
+                               str_detect(clus_names, "add") ~ "add-misc.", 
+                               str_detect(clus_names, "zoom") ~ "zooming issues", 
+                               #str_detect(clus_names, "ag") ~ "age-breakdowns", 
+                               str_detect(clus_names, "region") ~ "regional data", 
+                               str_detect(clus_names, "colour") ~ "colour-issues", 
+                               str_detect(clus_names, "compar|previou") ~ "comparisons", 
+                               str_detect(clus_names, "crash|fail|interact") ~ "map-stability", 
+                               str_detect(clus_names, "detail") ~ "detail", 
+                               str_detect(clus_names, "breakdown") ~ "breakdowns",
+                               str_detect(clus_names, "excel") ~ "praise",
+                               str_detect(clus_names, "death") ~ "deaths", 
+                               str_detect(clus_names, "time|consist") ~ "get-figures-out-on-time", 
+                               str_detect(clus_names, "local|msoa") ~ "granularity", 
+                               str_detect(clus_names, "home") ~ "homepage", 
+                               str_detect(clus_names, "date|frequent|lag") ~ "up-to-date|updates",
+                               str_detect(clus_names, "link") ~ "awareness", 
+                               str_detect(clus_names, "easi|navig") ~ "navigation", 
+                               str_detect(clus_names, "graph") ~ "graph-issues", 
+                               str_detect(clus_names, "pcr") ~ "testing-date",
+                               str_detect(clus_names, "post-code|postcod") ~ "post-code-issues", 
+                               str_detect(clus_names, "recov") ~ "recovery",
+                               str_detect(clus_names, "rate") ~ "rates-R"))
+```
+
+### Plot
+
+```{r fig.height=10, fig.width=10, paged.print=TRUE}
+library(treemap)
+library(d3treeR)
+
+### create scatter plot of responses
+
+
+## calculcate median values of each cluster
+
+cross_hairs <- classification %>%
+  group_by(clus_names) %>%
+  summarise(medX = median(V2), 
+            medY = median(V3))
+
+
+## plot scatter plot with colours for each cluster
+
+classification %>%
+  as_tibble() %>%
+  ggplot(aes(V2, V3)) + 
+  geom_jitter(aes(colour = clus_names), show.legend = FALSE, , alpha = 0.4) +
+  geom_point(aes(medX, medY), data = cross_hairs , shape = "X", size = 5) +
+  ggrepel::geom_text_repel(aes(label = clus_names, medX, medY), data = cross_hairs, size = 4) +
+  theme(axis.text = element_blank(), 
+        panel.background = element_blank()) +
+  labs(title = "Estimated clustering of 13085 free text responses to\n'What one thing would you improve about the website'",
+       x = "", 
+       y = ""
+       )
+
+### table of responses in random samples from each cluster
+classification %>%
+  group_by(clus_names) %>%
+  mutate(n = n()) %>%
+  sample_n(5) %>%
+  select(clus_names, absText, n) %>%
+  DT::datatable()
+
+```
+
+
+### test train split
+
+```{r model}
+
+
+library(rsample)
+
+
+## holdout unclustered data
+heldout <- categorised %>%
+  filter(cluster == 0)
+
+## training data
+training <- categorised %>%
+  filter(cluster != 0)
+
+## test train split
+split <- initial_split(training, strata = broad_cat)
+train <- training(split)
+test <- testing(split)
+
+## create a document term matrix, remove common words, numbers, punctuation, apply stemming
+
+train_dfm <- corpus(train, text_field = "absText") %>%
+  dfm(., remove = stopwords("en"), remove_numbers = TRUE, remove_punct = TRUE, stem = TRUE)
+
+#docvars(train_dfm)
+
+test_dfm <- corpus(test, text_field = "absText") %>%
+  dfm(., remove = stopwords("en"), remove_numbers = TRUE, remove_punct = TRUE, stem = TRUE)
+
+## build  model
+mod1 <- textmodel_svm(train_dfm, y = docvars(train_dfm, "broad_cat"))
+
+```
+
+
+### Model
+
+```{r}
+
+## caret is modelling package - we are using to measure accuracy
+library(caret)
+
+
+## match features in test set to training set
+dfm_match <- dfm_match(test_dfm, features = featnames(train_dfm)) 
+
+## extract labels we are trying to predict
+actual <- dfm_match$broad_cat
+
+## predict labels
+predicted <- predict(mod1, newdata = dfm_match)
+
+
+## compare accuracy of predictions with labels
+caret::confusionMatrix(table(actual, predicted)) %>%
+  tidy() %>%
+  filter(str_detect(term, "accuracy"))
+```
+
+
+
+### Apply to unclustered responses
+
+
+```{r}
+held_dfm <- corpus(heldout, text_field = "absText") %>%
+  dfm(., remove = stopwords("en"), remove_numbers = TRUE, remove_punct = TRUE, stem = TRUE)
+
+
+total_match <- dfm_match(held_dfm, features = featnames(train_dfm))
+
+## predict labels
+predict_total <- predict(mod1, newdata = total_match)
+
+## add predictions
+
+predicted_data <- data.frame(heldout, predicted = predict_total)
+
+glimpse(predicted_data)
+glimpse(training)
+
+pred <- predicted_data %>%
+  select(-broad_cat, broad_cat = predicted) %>%
+  bind_rows(training) 
+
+counts <- pred %>%
+  count(broad_cat, clus_names) 
+
+counts
+```
+
+### Treemap
+
+```{r}
+palette = viridis::viridis(20)
+
+t <- treemap(counts, 
+               index = c("broad_cat", "clus_names"), 
+               vSize = "n", 
+               type = "index", 
+               palette = palette)
+
+d3tree3(t, rootname = "Grouped answers")
+
+```
+
+### Sample
+
+```{r}
+predicted_data %>%
+  group_by(predicted) %>%
+  sample_n(3) %>%
+  select( absText, clus_names, predicted, broad_cat) %>%
+  DT::datatable()
+```
+
+
+
+
+
+
+
+```{r, eval = FALSE, echo=FALSE}
+unclustered <- classification %>%
+  filter(cluster == 0) 
+clust_model <- unclustered %>%
+  select(V2, V3)
+clusters <- mclust::mclustBIC(clust_model)
+plot(clusters)
+
+summary(clusters)
+mod1 <- Mclust(clust_model, x = clusters)
+summary(mod1)
+plot(mod1, what = "classification")
+mod1$classification
+
+output <- data.frame(unclustered, cluster1 = mod1$classification)
+
+un_corpus <- create_abstract_corpus(output %>% rename(pmid = pmid.value))
+
+labels <- un_corpus$corpus %>%
+  left_join(output, by = c("pmid" = "pmid.value")) %>%
+  group_by(cluster1) %>%
+  filter(n >= 4) %>%
+  arrange(cluster, -tf_idf) %>%
+  top_n(6, tf_idf) %>%
+  mutate(labels = paste(word, collapse = "-")) %>%
+  select(cluster, labels) %>%
+  distinct()
+
+labels %>%
+  count(labels)
+
+output %>%
+  count(cluster1)
+```
+
